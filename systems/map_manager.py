@@ -3,3 +3,6 @@ def initialize_map():
 
 def update_map():
     pass
+
+def render_map():
+    pass
