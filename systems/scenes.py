@@ -1,6 +1,6 @@
 import pygame
 import math
-from settings import SCREEN_W, SCREEN_H, BOARD_W, CELL_SIZE, COLOR_BG, COLOR_TEXT, TOWER_STATS, MAX_UPGRADE_LEVEL, MAX_MERGE_LEVEL
+from settings import *
 from systems.map import Grid, Pathfinder, StageLoader
 from systems.wave import WaveManager
 from systems.economy import Economy, CastleHP, ScoreSystem

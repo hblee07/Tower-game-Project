@@ -9,10 +9,10 @@ class Tower(metaclass=ABCMeta):
         self.merge_level=merge_level
         self.upgrade_level=upgrade_level
         s=TOWER_STATS[tower_type]
-        self.base_damage=s['damage'][merge_level-1]
+        self.base_damage=s['damage'][merge_level - 1]
         self.damage=self.base_damage
-        self.attack_range=s['attack_range']
-        self.attack_speed=s['attack_speed']
+        self.attack_range=s['attack_range'][merge_level - 1]
+        self.attack_speed=s['attack_speed'][merge_level - 1]
         self.skill_cooldown_max=s['skill_cooldown']
         self.attack_timer=0
         self.skill_gauge=0
@@ -57,7 +57,7 @@ class Tower(metaclass=ABCMeta):
         return 1 if self.skill_cooldown_max==0 else self.skill_gauge/self.skill_cooldown_max
     
     def upgrade_cost(self): 
-        return TOWER_STATS[self.tower_type]['upgrade_base']*(self.upgrade_level+1)
+        return int(TOWER_STATS[self.tower_type]['upgrade_base']*(0.2*self.upgrade_level+1))
     
     def can_upgrade(self): 
         return self.upgrade_level < MAX_UPGRADE_LEVEL
@@ -73,8 +73,7 @@ class Tower(metaclass=ABCMeta):
         return True
     
     def _apply_upgrade(self): 
-        self.damage=int(self.damage*1.1+3)
-        self.attack_range*=1.04
+        self.damage=int(self.damage*1.05)
     
     def sell_value(self): 
         return int(TOWER_STATS[self.tower_type]['cost'][self.merge_level-1]*TOWER_STATS[self.tower_type]['sell_ratio'] + self.upgrade_level*25)

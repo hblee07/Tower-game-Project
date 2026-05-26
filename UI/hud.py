@@ -107,8 +107,49 @@ class HUD:
             cost_text = f"Upgrade cost: {cost}G" if t.upgrade_level < MAX_UPGRADE_LEVEL else "Upgrade cost: MAX"
             self.draw_text(surface, cost_text, x, 328, self.small, (255, 215, 0))
             
-            self.draw_text(surface, f"Skill: {int(t.skill_cooldown_ratio()*100)}%", x, 346, self.small, (100, 230, 100) if t.skill_ready() else COLOR_TEXT)
-            self.draw_text(surface, f"Merge: same type & level in range + 'M'", x, 364, self.small, (160, 160, 160))
+            # =================🔥 [스킬 게이지 바 + % 디자인 추가] =================
+            self.draw_text(surface, "Skill:", x, 398, self.small, (190, 190, 190))
+            
+            # 게이지 바 레이아웃 설정
+            bar_x = x + 38          # 스킬 텍스트 오른쪽에 배치
+            bar_y = 398 + 2         # 텍스트와 세로 중앙 맞춤 정렬
+            bar_w = 115             # 게이지 바 전체 너비
+            bar_h = 12              # 게이지 바 높이
+            
+            # 게이지 비율 계산 (0.0 ~ 1.0 제한)
+            ratio = min(1.0, max(0.0, t.skill_cooldown_ratio()))
+            current_bar_w = int(bar_w * ratio)
+            
+            # 상태에 따른 색상 정의
+            if t.skill_ready():
+                fill_color = (45, 140, 215)     # 1. 스킬 준비 완료 (Ready) : 파란색
+                text_color = (100, 200, 255)
+            elif ratio >= 0.7:
+                fill_color = (70, 210, 120)     # 2. 70% 이상 : 초록색
+                text_color = (140, 255, 180)
+            elif ratio >= 0.2:
+                fill_color = (245, 200, 65)     # 3. 20% 이상 : 노란색
+                text_color = (255, 235, 140)
+            else:
+                fill_color = (235, 75, 75)      # 4. 20% 미만 : 빨간색
+                text_color = (255, 140, 140)
+            
+            # 1. 게이지 바 어두운 배경 그리기
+            pygame.draw.rect(surface, (40, 45, 55), (bar_x, bar_y, bar_w, bar_h), border_radius=3)
+            
+            # 2. 실제로 게이지가 차오른 만큼 안쪽 바 그리기 (비율이 0보다 클 때만)
+            if current_bar_w > 0:
+                pygame.draw.rect(surface, fill_color, (bar_x, bar_y, current_bar_w, bar_h), border_radius=3)
+            
+            # 3. 깔끔함을 더해줄 슬림한 외각 테두리 선
+            pygame.draw.rect(surface, (80, 85, 95), (bar_x, bar_y, bar_w, bar_h), 1, border_radius=3)
+            
+            # 4. 바 오른쪽에 100% 텍스트 표기
+            percentage_str = f"{int(ratio * 100)}%"
+            self.draw_text(surface, percentage_str, bar_x + bar_w + 8, 398, self.small, color=text_color)
+            # ===================================================================
+            
+            self.draw_text(surface, f"Merge: same type & level in range + 'M'", x, 414, self.small, (160, 160, 160))
 
             self.action_buttons['skill'].draw(surface, self.small, enabled=t.skill_ready())
             self.action_buttons['upgrade'].draw(surface, self.small, enabled=(t.upgrade_level < MAX_UPGRADE_LEVEL and game.economy.can_afford(cost)))
