@@ -12,15 +12,15 @@ COLOR_PATH = (92, 86, 70)
 COLOR_BG = (18, 20, 28)
 COLOR_TEXT = (235, 235, 235)
 MAX_MERGE_LEVEL = 3
-MAX_UPGRADE_LEVEL = 5
+MAX_UPGRADE_LEVEL = 3
 START_GOLD = 450
 START_HP = 30
 WAVE_CLEAR_BONUS = 80
 TOWER_STATS = {
-    'bomb': {'name':'Bomb','cost':[100,160,250],'damage':[36,58,95],'attack_range':4.3,'attack_speed':1.0,'skill_cooldown':12,'sell_ratio':0.65,'upgrade_base':70},
-    'lightning': {'name':'Lightning','cost':[120,190,280],'damage':[20,34,56],'attack_range':5.0,'attack_speed':0.5,'skill_cooldown':14,'sell_ratio':0.65,'upgrade_base':80,'chain_count':[2,3,5]},
-    'thorn': {'name':'Thorn','cost':[110,170,260],'damage':[6,10,16],'attack_range':3.2,'attack_speed':1.5,'skill_cooldown':16,'sell_ratio':0.65,'upgrade_base':75,'slow_factor':[0.62,0.52,0.42]},
-    'random': {'name':'Random','cost':[90,150,230],'damage':[14,24,38],'attack_range':4.0,'attack_speed':2.0,'skill_cooldown':10,'sell_ratio':0.65,'upgrade_base':65},
+    'bomb': {'name':'Bomb','cost':[110,170,260],'damage':[36,58,95],'attack_range':4.3,'attack_speed':1.0,'skill_cooldown':12,'sell_ratio':0.3,'upgrade_base':75},
+    'lightning': {'name':'Lightning','cost':[120,190,280],'damage':[20,34,56],'attack_range':5.0,'attack_speed':0.5,'skill_cooldown':14,'sell_ratio':0.3,'upgrade_base':80,'chain_count':[2,3,5]},
+    'thorn': {'name':'Thorn','cost':[100,160,250],'damage':[6,10,16],'attack_range':3.2,'attack_speed':1.5,'skill_cooldown':16,'sell_ratio':0.3,'upgrade_base':70,'slow_factor':[0.62,0.52,0.42]},
+    'random': {'name':'Random','cost':[70,110,160],'damage':[4,8,12],'attack_range':4.0,'attack_speed':2.0,'skill_cooldown':10,'sell_ratio':0.3,'upgrade_base':65},
 }
 ENEMY_STATS = {
     'grunt': {'hp':70,'speed':55,'gold':16,'damage':1,'color':(210,80,80)},

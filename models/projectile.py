@@ -26,29 +26,80 @@ class BasicProjectile:
 
 class BombProjectile(BasicProjectile):
     def __init__(self, start_grid, target, damage, radius): 
-        super().__init__(start_grid,target,damage,220)
-        self.radius=radius
-        self.enemies=[]
-        self.color=(255,120,40)
-    def set_enemies(self,enemies): 
-        self.enemies=enemies
+        super().__init__(start_grid, target, damage, 220)
+        self.radius = radius
+        self.enemies = []
+        self.color = (255, 120, 40)
+        
+        # 상태 제어를 위한 변수들 추가
+        self.state = 'moving'         # 현재 상태: 'moving', 'waiting', 'exploding'
+        self.wait_timer = 0.2         # 목표 도달 후 머무는 시간 (0.2초)
+        self.explode_duration = 0.2   # 폭발 이펙트가 퍼지는 시간
+        self.explode_timer = 0        # 폭발 진행 시간 추적용
+        self.damage_dealt = False     # 데미지 중복 적용 방지
+
+    def set_enemies(self, enemies): 
+        self.enemies = enemies
+
     def update(self, dt):
-        if not self.target.alive: 
-            self.alive=False; return
-        tx,ty=self.target.pixel_pos
-        dx=tx-self.x
-        dy=ty-self.y
-        dist=math.hypot(dx,dy)
-        if dist < max(6,self.speed*dt):
-            for e in self.enemies:
-                if e.alive and math.hypot(e.pixel_pos[0]-tx,e.pixel_pos[1]-ty)<=self.radius: 
-                    e.take_damage(self.damage)
-            self.alive=False
-            return
-        self.x += dx/dist*self.speed*dt
-        self.y += dy/dist*self.speed*dt
-    def draw(self,surface): 
-        pygame.draw.circle(surface,self.color,(int(self.x),int(self.y)),6)
+        tx, ty = self.target.pixel_pos
+        
+        if self.state == 'moving':
+            # 1. 목표 위치로 이동
+            dx = tx - self.x
+            dy = ty - self.y
+            dist = math.hypot(dx, dy)
+            
+            if dist < max(6, self.speed * dt):
+                self.x, self.y = tx, ty
+                self.state = 'waiting' # 목표 지점 도달 시 대기 상태로 전환
+            else:
+                self.x += dx / dist * self.speed * dt
+                self.y += dy / dist * self.speed * dt
+                
+        elif self.state == 'waiting':
+            # 2. 0.2초 동안 제자리에 머무름
+            self.wait_timer -= dt
+            if self.wait_timer <= 0:
+                self.state = 'exploding'
+                
+        elif self.state == 'exploding':
+            # 3. 폭발 및 데미지 판정 (1회만 적용)
+            if not self.damage_dealt:
+                for e in self.enemies:
+                    if e.alive and math.hypot(e.pixel_pos[0] - self.x, e.pixel_pos[1] - self.y) <= self.radius: 
+                        e.take_damage(self.damage)
+                self.damage_dealt = True
+            
+            # 폭발 이펙트 지속시간 체크
+            self.explode_timer += dt
+            if self.explode_timer >= self.explode_duration:
+                self.alive = False # 이펙트 끝나면 투사체 삭제
+
+    def draw(self, surface):
+        if self.state in ['moving', 'waiting']:
+            # 이동 중이거나 대기 중일 때는 원래 투사체 모습 유지
+            pygame.draw.circle(surface, self.color, (int(self.x), int(self.y)), 6)
+            
+        elif self.state == 'exploding':
+            # 폭발 진행률 (0.0 ~ 1.0)
+            progress = min(1.0, self.explode_timer / self.explode_duration)
+            current_radius = self.radius * progress
+            
+            # 궁극기처럼 퍼지는 폭발 이펙트 그리기
+            cx, cy = int(self.x), int(self.y)
+            max_r = int(self.radius) + 2
+            
+            # 투명도가 있는 원을 그리기 위해 별도 Surface 사용
+            s = pygame.Surface((max_r * 2, max_r * 2), pygame.SRCALPHA)
+            center = (max_r, max_r)
+            
+            # 반투명하게 칠해진 안쪽 원
+            pygame.draw.circle(s, (255, 120, 40, 100), center, int(current_radius))
+            # 뚜렷한 바깥쪽 테두리 선
+            pygame.draw.circle(s, (255, 80, 20, 255), center, int(current_radius), max(1, int(3 * (1 - progress))))
+            
+            surface.blit(s, (cx - max_r, cy - max_r))
 
 class LightningProjectile:
     def __init__(self, start_grid, target, damage, chain_count):

@@ -268,9 +268,15 @@ class GameScene(BaseScene):
             e.set_path(self.grid.path)
 
     def try_merge(self, a, b):
+        # 0. 두 타워가 각각 merge 가능 타워인지 확인
+        if a.upgrade_level != 5 or b.upgrade_level != 5:
+            self.flash_hud_msg('Both Tower need to be level 5 for merge')
+            self.merge_source = None
+            return
+        
         # 1. [기본 조건 검사] 종류와 합체 레벨이 같은지 확인
         if a is b or a.tower_type != b.tower_type or a.merge_level != b.merge_level or a.merge_level >= 3:
-            self.flash_hud_msg('Merge needs same type/level')
+            self.flash_hud_msg('Merge needs same type and merge level(under 3)')
             self.merge_source = None
             return
             
@@ -296,7 +302,7 @@ class GameScene(BaseScene):
 
         #3. [성공] 모든 조건을 통과했으므로 실제 합체 진행
         pos = b.grid_pos
-        new = a.__class__(pos, a.merge_level + 1, max(a.upgrade_level, b.upgrade_level))
+        new = a.__class__(pos, a.merge_level + 1, 0)
         
         self.towers.remove(a)
         self.towers.remove(b)

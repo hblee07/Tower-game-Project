@@ -71,7 +71,7 @@ class Tower(metaclass=ABCMeta):
         return True
     
     def _apply_upgrade(self): 
-        self.damage=int(self.damage*1.22+3)
+        self.damage=int(self.damage*1.1+3)
         self.attack_range*=1.04
     
     def sell_value(self): 
@@ -104,31 +104,78 @@ class Tower(metaclass=ABCMeta):
     def from_dict(data):
         return {'bomb':BombTower,'lightning':LightningTower,'thorn':ThornTower,'random':RandomTower}[data['type']](tuple(data['grid_pos']),data['merge_level'],data.get('upgrade_level',0))
 
+# 투사체(Projectile)가 목표물의 좌표(pixel_pos)를 정상적으로 읽을 수 있도록 돕는 더미 클래스
+class DummyTarget:
+    def __init__(self, pos):
+        self.pixel_pos = pos
+        self.alive = True
+        self.path_progress = 0
+
 class BombTower(Tower):
-    def __init__(self,grid_pos,merge_level=1,upgrade_level=0): 
-        super().__init__('bomb',grid_pos,merge_level,upgrade_level)
-        self.bomb_radius=(1.2+0.35*merge_level)*CELL_SIZE
+    def __init__(self, grid_pos, merge_level=1, upgrade_level=0): 
+        super().__init__('bomb', grid_pos, merge_level, upgrade_level)
+        self.bomb_radius = (1.2 + 0.35 * merge_level) * CELL_SIZE
 
-    def _draw_body(self,s,px,py): 
-        pygame.draw.circle(s,(215,95,45),(px+CELL_SIZE//2,py+CELL_SIZE//2),CELL_SIZE//2-3)
+    def _draw_body(self, s, px, py): 
+        pygame.draw.circle(s, (215, 95, 45), (px + CELL_SIZE // 2, py + CELL_SIZE // 2), CELL_SIZE // 2 - 3)
 
-    def _fire(self,target):
-        from models.projectile import BombProjectile #이거 순환참조 방지 위해 여기서 import --> ??
-        return [BombProjectile(self.grid_pos,target,self.damage,self.bomb_radius)]
+    def _fire(self, target):
+        from models.projectile import BombProjectile
+        
+        # 1. 타워 중심 좌표 계산
+        cx = self.grid_pos[0] * CELL_SIZE + CELL_SIZE // 2
+        cy = self.grid_pos[1] * CELL_SIZE + CELL_SIZE // 2
+        
+        # 2. 공격 범위(attack_range) 내의 랜덤한 각도와 거리 산출
+        angle = random.uniform(0, 2 * math.pi)
+        dist = random.uniform(0, self.attack_range * CELL_SIZE)
+        
+        random_px = cx + math.cos(angle) * dist
+        random_py = cy + math.sin(angle) * dist
+        
+        # 3. 가짜 타겟(DummyTarget) 생성 후 랜덤 좌표 부여
+        # 적의 위치가 아닌 범위 내 엉뚱한(랜덤) 곳으로 폭탄을 던집니다.
+        dummy_target = DummyTarget((random_px, random_py))
+        
+        return [BombProjectile(self.grid_pos, dummy_target, self.damage, self.bomb_radius)]
     
-    def use_skill(self,enemies,grid):
+    def use_skill(self, enemies, grid):
         if not self.skill_ready() or not grid.path: 
             return False
+            
         from models.effect import ExplosionEffect
-        cell=random.choice(grid.path)
-        cx,cy=grid.grid_to_pixel_center(*cell)
-        radius=self.bomb_radius*3.0
+        
+        # 1. 타워 중심 좌표
+        my_cx = self.grid_pos[0] * CELL_SIZE + CELL_SIZE // 2
+        my_cy = self.grid_pos[1] * CELL_SIZE + CELL_SIZE // 2
+        
+        # 2. 공격 범위 내에 존재하는 적의 이동 경로(path)만 필터링
+        valid_path_cells = []
+        for cell in grid.path:
+            cell_cx, cell_cy = grid.grid_to_pixel_center(*cell)
+            if math.hypot(cell_cx - my_cx, cell_cy - my_cy) <= self.attack_range * CELL_SIZE:
+                valid_path_cells.append(cell)
+        
+        # 만약 사거리 내에 경로가 하나도 없다면 스킬 발동을 취소 (쿨타임 보존)
+        if not valid_path_cells:
+            return False
+            
+        # 3. 사거리 내 경로 중 랜덤한 한 칸을 지정하여 초거대 폭탄 투하
+        target_cell = random.choice(valid_path_cells)
+        cx, cy = grid.grid_to_pixel_center(*target_cell)
+        
+        # 초거대 폭탄 스펙 (기본 반경의 5배, 데미지 10배 - 밸런스에 맞게 조절 가능)
+        massive_radius = self.bomb_radius * 5.0
+        massive_damage = self.damage * 10
+        
         for e in enemies:
-            if e.alive and math.hypot(e.pixel_pos[0]-cx,e.pixel_pos[1]-cy)<=radius: 
-                e.take_damage(self.damage*4)
+            if e.alive and math.hypot(e.pixel_pos[0] - cx, e.pixel_pos[1] - cy) <= massive_radius: 
+                e.take_damage(massive_damage)
+                
         if grid.effect_manager: 
-            grid.effect_manager.spawn(ExplosionEffect(cell,radius))
-        self._skill_timer=0
+            grid.effect_manager.spawn(ExplosionEffect(target_cell, massive_radius))
+            
+        self._skill_timer = 0
         return True
 
 class LightningTower(Tower):
