@@ -1,6 +1,6 @@
 import pygame
 import math
-from settings import SCREEN_W, SCREEN_H, BOARD_W, CELL_SIZE, COLOR_BG, COLOR_TEXT, TOWER_STATS
+from settings import SCREEN_W, SCREEN_H, BOARD_W, CELL_SIZE, COLOR_BG, COLOR_TEXT, TOWER_STATS, MAX_UPGRADE_LEVEL, MAX_MERGE_LEVEL
 from systems.map import Grid, Pathfinder, StageLoader
 from systems.wave import WaveManager
 from systems.economy import Economy, CastleHP, ScoreSystem
@@ -269,7 +269,7 @@ class GameScene(BaseScene):
 
     def try_merge(self, a, b):
         # 0. 두 타워가 각각 merge 가능 타워인지 확인
-        if a.upgrade_level != 5 or b.upgrade_level != 5:
+        if a.upgrade_level != MAX_UPGRADE_LEVEL or b.upgrade_level != MAX_UPGRADE_LEVEL:
             self.flash_hud_msg('Both Tower need to be level 5 for merge')
             self.merge_source = None
             return
