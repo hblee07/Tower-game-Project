@@ -16,6 +16,13 @@ class SceneManager:
         self.save_manager=save_manager
         self.scene=None
         self.audio=AudioManager()
+        
+        # 🔒 [스테이지 해금 정보 관리]
+        # 랭킹처럼 세이브 매니저를 통해 관리하도록 연동합니다.
+        self.unlocked_stages = self.save_manager.load_rankings() # 임시 혹은 기본값 세팅용
+        # 만약 세이브매니저에 따로 스테이지 저장 기능이 없다면, 여기 매니저 레벨에서 우선 상태를 전역 관리합니다.
+        if not hasattr(self, 'unlocked_stages_dict'):
+            self.unlocked_stages_dict = {1: True, 2: False, 3: False} # 1층만 열림, 2/3층 잠김
 
     def replace(self, scene_name, **kwargs):
         self.scene=self._build(scene_name, **kwargs)
@@ -28,7 +35,7 @@ class SceneManager:
         if name=='ranking': 
             return RankingScene(self)
         if name=='end': 
-            return EndScene(self, kwargs.get('result','lose'), kwargs.get('score',0))
+            return EndScene(self, kwargs.get('result','lose'), kwargs.get('score',0), kwargs.get('stage_id', 1))
         raise ValueError(name)
     
     def handle_event(self,event):
@@ -60,19 +67,26 @@ class TitleScene(BaseScene):
         self.font=pygame.font.SysFont(None,56)
         self.small=pygame.font.SysFont(None,28)
         cx=SCREEN_W//2
-        self.buttons=[('Stage 1',pygame.Rect(cx-120,180,240,44),'stage1'),
-                      ('Stage 2',pygame.Rect(cx-120,236,240,44),'stage2'),
-                      ('Continue',pygame.Rect(cx-120,292,240,44),'continue'),
-                      ('Ranking',pygame.Rect(cx-120,348,240,44),'ranking'),
-                      ('Quit',pygame.Rect(cx-120,404,240,44),'quit')]
+        
+        # 🛠️ [Stage 3 버튼 추가 및 레이아웃 재배치] y간격을 균등 조정했습니다.
+        self.buttons=[('Stage 1',pygame.Rect(cx-120,160,240,40),'stage1'),
+                      ('Stage 2',pygame.Rect(cx-120,210,240,40),'stage2'),
+                      ('Stage 3',pygame.Rect(cx-120,260,240,40),'stage3'), # 🆕 Stage 3 추가!
+                      ('Continue',pygame.Rect(cx-120,310,240,40),'continue'),
+                      ('Ranking',pygame.Rect(cx-120,360,240,40),'ranking'),
+                      ('Quit',pygame.Rect(cx-120,410,240,40),'quit')]
+                      
     def handle_event(self,event):
         if event.type==pygame.MOUSEBUTTONDOWN and event.button==1:
             for _,rect,act in self.buttons:
                 if rect.collidepoint(event.pos):
-                    if act=='stage1': 
+                    # 🔒 [클릭 제어] 잠겨있는 스테이지라면 클릭 무시
+                    if act == 'stage1' and self.manager.unlocked_stages_dict.get(1):
                         self.manager.replace('game',stage_id=1)
-                    elif act=='stage2': 
+                    elif act == 'stage2' and self.manager.unlocked_stages_dict.get(2):
                         self.manager.replace('game',stage_id=2)
+                    elif act == 'stage3' and self.manager.unlocked_stages_dict.get(3): # 🆕 Stage 3 진입
+                        self.manager.replace('game',stage_id=3)
                     elif act=='continue':
                         data=self.manager.save_manager.load()
                         if data: 
@@ -81,21 +95,28 @@ class TitleScene(BaseScene):
                         self.manager.replace('ranking')
                     elif act=='quit': 
                         pygame.event.post(pygame.event.Event(pygame.QUIT))
+                        
     def draw(self,surface):
         surface.fill((20,24,34))
-        title=self.font.render('Tower Defense',True,(255,235,130))
-        surface.blit(title,title.get_rect(center=(SCREEN_W//2,100)))
+        title=self.font.render('Tower Defense Game',True,(255,235,130))
+        surface.blit(title,title.get_rect(center=(SCREEN_W//2,90)))
+        
         for text,rect,act in self.buttons:
-            enabled = act!='continue' or self.manager.save_manager.has_save()
-            pygame.draw.rect(surface,(70,82,96) if enabled else (45,48,55),rect,border_radius=8)
-            pygame.draw.rect(surface,(185,190,200),rect,2,border_radius=8)
-            img=self.small.render(text,True,COLOR_TEXT if enabled else (130,130,130))
+            # 🔒 [잠금 UI 시각화] 스테이지 종류에 따라 해금 상태 파악
+            enabled = True
+            if act == 'stage1': enabled = self.manager.unlocked_stages_dict.get(1, False)
+            elif act == 'stage2': enabled = self.manager.unlocked_stages_dict.get(2, False)
+            elif act == 'stage3': enabled = self.manager.unlocked_stages_dict.get(3, False)
+            elif act == 'continue': enabled = self.manager.save_manager.has_save()
+            
+            # 잠겨있으면 어두운 회색색상 (45, 48, 55), 열려있으면 파란빛 회색 (70, 82, 96)
+            pygame.draw.rect(surface,(70,82,96) if enabled else (40,42,48),rect,border_radius=8)
+            pygame.draw.rect(surface,(185,190,200) if enabled else (90,95,100),rect,2,border_radius=8)
+            
+            # 잠겨있으면 글씨도 어둡게 렌더링
+            display_text = text if enabled or 'Stage' not in text else f"{text} (Locked)"
+            img=self.small.render(display_text, True, COLOR_TEXT if enabled else (100,100,100))
             surface.blit(img,img.get_rect(center=rect.center))
-
-import pygame
-from settings import BOARD_W, COLOR_BG, TOWER_STATS
-# 필요한 타워 클래스들이 정의되어 있다고 가정합니다.
-# from towers import BombTower, LightningTower, ThornTower, RandomTower
 
 class GameScene(BaseScene):
     def __init__(self, manager, stage_id, save_data=None):
@@ -135,7 +156,6 @@ class GameScene(BaseScene):
             self.restore(save_data)
             self.wave_manager.load_current_wave(self.grid.path, self.effect_manager)
         else:
-            # 🔄 [자동 시작 원상 복구] 게임 시작 시 첫 웨이브를 자동으로 바로 실행합니다.
             if not self.wave_manager.all_clear and not self.wave_manager.active and not self.wave_manager.waiting_for_clear: 
                 self.wave_manager.start_next_wave(self.grid.path, self.effect_manager)
 
@@ -143,13 +163,11 @@ class GameScene(BaseScene):
         self.grid.path = self.pathfinder.find_path(self.grid)
     
     def flash_hud_msg(self, text, is_bad=True):
-        """HUD에 녹색/빨간색 메시지를 보낼 수 있도록 매핑하는 헬퍼 메서드"""
         self.message = text
         self.message_bad = is_bad
-        self.hud.flash_invalid(text)  # 지속시간 타이머 가동
+        self.hud.flash_invalid(text)
 
     def handle_event(self, event):
-        # 1. 키보드 단축키 처리
         if event.type == pygame.KEYDOWN:
             if event.key in (pygame.K_ESCAPE, pygame.K_p):
                 self.paused = not self.paused
@@ -174,25 +192,20 @@ class GameScene(BaseScene):
                 self.paused = False
             return
 
-        # 2. 마우스 우클릭 처리 (명령 취소/초기화 상태)
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
             self.selected_build = None
             self.selected_tower = None
             self.merge_source = None
             return
 
-        # 3. 마우스 좌클릭 처리
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             pos = event.pos
-            
-            # [개선 핵심] 클릭이 HUD 패널 영역(오른쪽)에서 일어난 경우
             if pos[0] >= BOARD_W:
                 action = self.hud.handle_click(pos)
                 if action:
                     self.process_hud_action(action)
                 return
             
-            # 클릭이 게임 보드 영역(왼쪽)에서 일어난 경우
             c, r = self.grid.pixel_to_grid(*pos)
             self.on_grid_click(c, r)
 
@@ -208,7 +221,6 @@ class GameScene(BaseScene):
             self.upgrade_selected()
         elif action == 'sell':
             self.sell_selected()
-        # ⚠️ elif action == 'start_wave': 이 파트가 삭제되었습니다.
         elif action == 'save':
             self.save()
         elif action == 'title':
@@ -216,19 +228,13 @@ class GameScene(BaseScene):
 
     def on_grid_click(self, c, r):
         target = self.tower_at(c, r)
-        
-        # 머지 대상 소스가 있는 상태에서 다른 타워를 클릭했을 때 머지 시도
         if self.merge_source and target:
             self.try_merge(self.merge_source, target)
             return
-            
-        # 클릭한 곳에 타wer가 있다면 해당 타워 선택
         if target:
             self.selected_tower = target
             self.selected_build = None
             return
-            
-        # 클릭한 곳이 빈칸이고 타워 구매/설정이 활성화된 상태라면 배치 시도
         if self.selected_build: 
             self.place_tower(self.selected_build, c, r)
 
@@ -245,62 +251,60 @@ class GameScene(BaseScene):
             self.flash_hud_msg('Not enough gold')
             return
             
+        # 1. 그리드에 타워를 가상으로 배치하고 새 경로를 계산합니다.
         self.grid.place_tower(c, r)
         new_path = self.pathfinder.find_path(self.grid)
         
+        # 길막 방지 검사
         if not new_path: 
             self.grid.remove_tower(c, r)
             self.flash_hud_msg('Cannot block path')
             return
             
         if not self.economy.spend(cost): 
+            self.grid.remove_tower(c, r)
             self.flash_hud_msg('Not enough gold')
             return
             
         cls = {'bomb': BombTower, 'lightning': LightningTower, 'thorn': ThornTower, 'random': RandomTower}[tower_type]
         tower = cls((c, r))
         self.towers.append(tower)
+        
+        # 💡 [여기서부터 핵심 경로 분기 로직]
+        tower_pos = (c, r)
+        
         self.grid.path = new_path
-        self.selected_tower = tower
-        self.selected_build = None  # 건설 성공 후 하이라이트 해제
         
         for e in self.enemies: 
             e.set_path(self.grid.path)
 
+        # 8. UI 선택 상태 초기화
+        self.selected_tower = tower
+        self.selected_build = None
+
     def try_merge(self, a, b):
-        # 0. 두 타워가 각각 merge 가능 타워인지 확인
         if a.upgrade_level != MAX_UPGRADE_LEVEL or b.upgrade_level != MAX_UPGRADE_LEVEL:
             self.flash_hud_msg('Both Tower need to be level 5 for merge')
             self.merge_source = None
             return
-        
-        # 1. [기본 조건 검사] 종류와 합체 레벨이 같은지 확인
         if a is b or a.tower_type != b.tower_type or a.merge_level != b.merge_level or a.merge_level >= 3:
             self.flash_hud_msg('Merge needs same type and merge level(under 3)')
             self.merge_source = None
             return
             
-        # 2. [사정거리 조건 추가] 두 타워가 서로의 사정거리 내에 있는지 계산
-        # 각 타워의 중심점 픽셀 좌표 구하기
         cx1 = a.grid_pos[0] * CELL_SIZE + CELL_SIZE // 2
         cy1 = a.grid_pos[1] * CELL_SIZE + CELL_SIZE // 2
         cx2 = b.grid_pos[0] * CELL_SIZE + CELL_SIZE // 2
         cy2 = b.grid_pos[1] * CELL_SIZE + CELL_SIZE // 2
-        
-        # 두 타워 사이의 실제 픽셀 거리 계산
         distance = math.hypot(cx2 - cx1, cy2 - cy1)
-        
-        # 각 타워의 실제 픽셀 사정거리 구하기 (Tower 클래스 내부 연산 규칙 적용)
         r1 = a.attack_range * CELL_SIZE
         r2 = b.attack_range * CELL_SIZE
         
-        # 판정: 만약 거리가 어느 한쪽의 사정거리라도 벗어난다면 머지 차단!
         if distance > r1 or distance > r2:
-            self.flash_hud_msg('Too far to merge! Out of range') # 사정거리 밖 경고 메시지 출력
+            self.flash_hud_msg('Too far to merge! Out of range')
             self.merge_source = None
             return
 
-        #3. [성공] 모든 조건을 통과했으므로 실제 합체 진행
         pos = b.grid_pos
         new = a.__class__(pos, a.merge_level + 1, 0)
         
@@ -410,14 +414,21 @@ class GameScene(BaseScene):
 
     def end(self, result):
         score = self.score_system.calc_score(self.wave_manager.current_wave, self.castle_hp.hp, self.economy.gold)
+        
+        # 🔒 [해금 로직 연동] 스테이지를 이겼을 때(win) 다음 스테이지 잠금을 풀어줍니다.
+        if result == 'win':
+            next_stage = self.stage_id + 1
+            if next_stage in self.manager.unlocked_stages_dict:
+                self.manager.unlocked_stages_dict[next_stage] = True
+                
         self.manager.save_manager.delete()
-        self.manager.replace('end', result=result, score=score)
+        # EndScene으로 현재 끝난 스테이지 ID도 같이 넘겨줍니다.
+        self.manager.replace('end', result=result, score=score, stage_id=self.stage_id)
 
     def draw(self, surface):
         surface.fill(COLOR_BG)
         self.grid.draw(surface)
         
-        # [연동 반영] selected_tower_type 대신 selected_build 변수로 가이드 서클 드로우 변경
         if self.selected_build:
             mx, my = pygame.mouse.get_pos()
             if mx < BOARD_W:
@@ -435,19 +446,17 @@ class GameScene(BaseScene):
             p.draw(surface)
             
         self.effect_manager.draw(surface)
-        
-        # HUD 렌더링 (현재의 GameScene 객체를 그대로 넘겨 최신 상태 추적 가능)
         self.hud.draw(surface, self)
-        
         if self.paused: 
             self.pause_overlay.draw(surface)
 
 class EndScene(BaseScene):
-    def __init__(self,manager,result,score): 
+    def __init__(self,manager,result,score, stage_id=1): 
         super().__init__(manager)
         self.manager.audio.play_bgm('end')
         self.result=result
         self.score=score
+        self.stage_id = stage_id
         self.name=''
         self.font=pygame.font.SysFont(None,56)
         self.small=pygame.font.SysFont(None,28)
@@ -465,31 +474,58 @@ class EndScene(BaseScene):
                 self.name+=event.unicode
     def draw(self,surface):
         surface.fill((24,20,30))
-        title=self.font.render('VICTORY' if self.result=='win' else 'DEFEAT',True,(255,235,130))
+        
+        # 👑 스테이지 클리어 문구 고도화 (예: Stage 1 VICTORY)
+        status_text = f'Stage {self.stage_id} VICTORY' if self.result=='win' else 'DEFEAT'
+        title=self.font.render(status_text,True,(255,235,130))
         surface.blit(title,title.get_rect(center=(SCREEN_W//2,150)))
         for i,line in enumerate([f'Score: {self.score}','Type name and press ENTER',self.name or '_']):
             img=self.small.render(line,True,COLOR_TEXT)
             surface.blit(img,img.get_rect(center=(SCREEN_W//2,240+i*40)))
 
+# scenes.py 파일 최하단에 그대로 붙여넣으세요
+
 class RankingScene(BaseScene):
-    def __init__(self,manager): 
+    def __init__(self, manager): 
         super().__init__(manager)
         self.manager.audio.play_bgm('ranking')
-        self.font=pygame.font.SysFont(None,52)
-        self.small=pygame.font.SysFont(None,28)
+        self.font = pygame.font.SysFont(None, 48)  
+        self.small = pygame.font.SysFont(None, 24) 
 
-    def handle_event(self,event):
-        if event.type==pygame.KEYDOWN or event.type==pygame.MOUSEBUTTONDOWN: self.manager.replace('title')
+    def handle_event(self, event):
+        if event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN: 
+            self.manager.replace('title')
 
-    def draw(self,surface):
-        surface.fill((18,22,32))
-        title=self.font.render('Ranking',True,(255,235,130))
-        surface.blit(title,title.get_rect(center=(SCREEN_W//2,80)))
-        ranks=self.manager.save_manager.load_rankings()
+    def draw(self, surface):
+        surface.fill((18, 22, 32))
+        
+        # 1. 타이틀 그리기
+        title = self.font.render('Ranking Table', True, (255, 235, 130))
+        surface.blit(title, title.get_rect(center=(SCREEN_W // 2, 60)))
+        
+        ranks = self.manager.save_manager.load_rankings()
         if not ranks: 
-            ranks=[{'name':'No records','score':0}]
-        for i,r in enumerate(ranks[:10],1):
-            img=self.small.render(f"{i:2}. {r['name']}  {r['score']}",True,COLOR_TEXT)
-            surface.blit(img,(SCREEN_W//2-130,130+i*32))
-        msg=self.small.render('Press any key to return',True,(180,180,190))
-        surface.blit(msg,msg.get_rect(center=(SCREEN_W//2,550)))
+            ranks = [{'name': 'No records', 'score': 0}]
+            
+        # 최대 20등까지 가져와서 좌우 2열로 배치
+        for i, r in enumerate(ranks[:20], 1):
+            # 텍스트 포맷팅 (등수와 이름을 예쁘게 결합)
+            text_str = f"{i:>2}. {r['name']:<12} {r['score']:,}"
+            img = self.small.render(text_str, True, COLOR_TEXT)
+            
+            if i <= 10:
+                # 1~10등: 왼쪽 열 (X 좌표를 화면 중앙 기준 왼쪽으로 배치)
+                start_x = SCREEN_W // 2 - 240
+                # i가 1일 때 140, 10일 때 464에 그려짐
+                start_y = 140 + (i - 1) * 36 
+            else:
+                # 11~20등: 오른쪽 열 (X 좌표를 화면 중앙 기준 오른쪽으로 배치)
+                start_x = SCREEN_W // 2 + 20
+                # i가 11일 때 140, 20일 때 464에 그려져서 왼쪽 열과 완벽하게 높이가 맞음!
+                start_y = 140 + (i - 11) * 36 
+                
+            surface.blit(img, (start_x, start_y))
+            
+        # 2. 하단 안내 메시지
+        msg = self.small.render('Press any key to return', True, (180, 180, 190))
+        surface.blit(msg, msg.get_rect(center=(SCREEN_W // 2, 540)))

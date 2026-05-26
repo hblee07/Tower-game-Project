@@ -33,6 +33,6 @@ class SaveManager:
     def add_ranking(self, name, score):
         data = self.load_rankings()
         data.append({'name': name or 'PLAYER', 'score': int(score)})
-        data = sorted(data, key=lambda x: x['score'], reverse=True)[:10]
+        data = sorted(data, key=lambda x: x['score'], reverse=True)[:20] #상위 20명만 유지
         with open(self.ranking_file, 'w', encoding='utf-8') as f: 
             json.dump(data, f, ensure_ascii=False, indent=2)
