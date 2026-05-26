@@ -77,9 +77,18 @@ class Enemy:
         self.stun_timer=max(self.stun_timer, duration)
         
     def draw(self, surface):
-        x,y=map(int,self.pixel_pos)
-        radius=8 if self.kind!='boss' else 12
-        pygame.draw.circle(surface,self.color,(x,y),radius)
-        pygame.draw.rect(surface,(20,20,20),(x-12,y-radius-8,24,4))
-        pct=max(0.0,self.hp)/self.max_hp
-        pygame.draw.rect(surface,(70,220,80),(x-12,y-radius-8,int(24*pct),4))
+        x, y = map(int, self.pixel_pos)
+        radius = 8 if self.kind != 'boss' else 12
+        
+        # 1. 몬스터 본체 그리기
+        pygame.draw.circle(surface, self.color, (x, y), radius)
+        
+        # 💡 [수정] 체력이 만땅(최대 체력)이 아닐 때만 머리 위에 체력바를 그립니다.
+        if self.hp < self.max_hp:
+            # 체력바 검은색 배경 뒷부분 (24 픽셀 너비)
+            pygame.draw.rect(surface, (20, 20, 20), (x - 12, y - radius - 8, 24, 4))
+            
+            # 남은 체력 비율 계산
+            pct = max(0.0, self.hp) / self.max_hp
+            # 초록색 남은 체력 바 그리기
+            pygame.draw.rect(surface, (70, 220, 80), (x - 12, y - radius - 8, int(24 * pct), 4))

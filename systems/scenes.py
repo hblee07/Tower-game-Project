@@ -445,6 +445,7 @@ class GameScene(BaseScene):
 class EndScene(BaseScene):
     def __init__(self,manager,result,score): 
         super().__init__(manager)
+        self.manager.audio.play_bgm('end')
         self.result=result
         self.score=score
         self.name=''
@@ -473,6 +474,7 @@ class EndScene(BaseScene):
 class RankingScene(BaseScene):
     def __init__(self,manager): 
         super().__init__(manager)
+        self.manager.audio.play_bgm('ranking')
         self.font=pygame.font.SysFont(None,52)
         self.small=pygame.font.SysFont(None,28)
 
