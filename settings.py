@@ -1,9 +1,0 @@
-#Global 변수 정의
-
-GRID_SIZE = 30
-CELL_SIZE = 20
-FPS = 60
-
-
-COLOR_GRID = (0, 0, 0)
-COLOR_PATH = (255, 255, 255)
