@@ -27,8 +27,32 @@ class Enemy:
         return (cell[0]*CELL_SIZE+CELL_SIZE/2, cell[1]*CELL_SIZE+CELL_SIZE/2)
     
     def set_path(self, path):
-        if path: self.path=path
-        self.path_index=min(self.path_index, len(path)-1)
+        if not path: 
+            return
+            
+        self.path = path
+        
+        # 💡 [지름길/우회로 보정 로직] 
+        # 새 경로 중에서 현재 적의 픽셀 위치와 가장 가까운 타일(노드)의 인덱스를 찾습니다.
+        closest_idx = 0
+        min_dist = float('inf')
+        
+        for i, cell in enumerate(self.path):
+            cx, cy = self._center(cell)
+            # 현재 내 위치와 새 경로 타일 중심 사이의 거리 계산
+            dist = math.hypot(cx - self.pixel_pos[0], cy - self.pixel_pos[1])
+            
+            if dist < min_dist:
+                min_dist = dist
+                closest_idx = i
+                
+        # 가장 가까운 타일 인덱스를 나의 현재 위치로 설정합니다.
+        # 이렇게 하면 다음 프레임에 closest_idx + 1 번째 타일을 향해 자연스럽게 꺾어 들어갑니다.
+        self.path_index = closest_idx
+                
+        # 가장 가까운 타일을 현재 내 경로 인덱스로 설정
+        # (이렇게 하면 move 함수에서 closest_idx + 1 을 향해 자연스럽게 걸어갑니다)
+        self.path_index = closest_idx
 
     def move(self, dt):
         if not self.alive or self.reached_end or not self.path: 

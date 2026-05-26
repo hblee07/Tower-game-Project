@@ -160,7 +160,13 @@ class GameScene(BaseScene):
                 self.wave_manager.start_next_wave(self.grid.path, self.effect_manager)
 
     def recalc_path(self): 
+        # 1. 맵의 새로운 최단 경로 계산 (타워가 사라진 상태의 지름길)
         self.grid.path = self.pathfinder.find_path(self.grid)
+        
+        # 2. 게임 씬이 처음 생성될 때(__init__) 아직 enemies 리스트가 없다면 건너뛰도록 방어
+        if hasattr(self, 'enemies'):
+            for e in self.enemies: 
+                e.set_path(self.grid.path)
     
     def flash_hud_msg(self, text, is_bad=True):
         self.message = text
