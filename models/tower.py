@@ -14,22 +14,24 @@ class Tower(metaclass=ABCMeta):
         self.attack_range=s['attack_range']
         self.attack_speed=s['attack_speed']
         self.skill_cooldown_max=s['skill_cooldown']
-        self._attack_timer=0
-        self._skill_timer=self.skill_cooldown_max
+        self.attack_timer=0
+        self.skill_gauge=0
         for _ in range(upgrade_level): 
             self._apply_upgrade()
     
     def update(self,dt,enemies):
-        self._skill_timer=min(self.skill_cooldown_max,self._skill_timer+dt)
         if self.attack_speed<=0:
             return []
-        self._attack_timer += dt
-        if self._attack_timer >= 1/self.attack_speed:
-            self._attack_timer=0
+        self.attack_timer += dt
+        if self.attack_timer >= 1/self.attack_speed:
+            self.attack_timer=0
             target=self._find_target(enemies)
             if target: 
                 return self._fire(target)
         return []
+    
+    def add_skill_gauge(self, damage_deal):
+        self.skill_gauge = min(self.skill_cooldown_max, self.skill_gauge + damage_deal)
     
     def _find_target(self,enemies):
         in_range=[e for e in enemies if e.alive and self._distance_to(e)<=self.attack_range*CELL_SIZE]
@@ -49,10 +51,10 @@ class Tower(metaclass=ABCMeta):
         pass
     
     def skill_ready(self): 
-        return self._skill_timer>=self.skill_cooldown_max
+        return self.skill_gauge>=self.skill_cooldown_max
     
     def skill_cooldown_ratio(self): 
-        return 1 if self.skill_cooldown_max==0 else self._skill_timer/self.skill_cooldown_max
+        return 1 if self.skill_cooldown_max==0 else self.skill_gauge/self.skill_cooldown_max
     
     def upgrade_cost(self): 
         return TOWER_STATS[self.tower_type]['upgrade_base']*(self.upgrade_level+1)
@@ -137,7 +139,7 @@ class BombTower(Tower):
         # 적의 위치가 아닌 범위 내 엉뚱한(랜덤) 곳으로 폭탄을 던집니다.
         dummy_target = DummyTarget((random_px, random_py))
         
-        return [BombProjectile(self.grid_pos, dummy_target, self.damage, self.bomb_radius)]
+        return [BombProjectile(self.grid_pos, dummy_target, self.damage, self.bomb_radius, self)]
     
     def use_skill(self, enemies, grid):
         if not self.skill_ready() or not grid.path: 
@@ -175,7 +177,7 @@ class BombTower(Tower):
         if grid.effect_manager: 
             grid.effect_manager.spawn(ExplosionEffect(target_cell, massive_radius))
             
-        self._skill_timer = 0
+        self.skill_gauge = 0
         return True
 
 class LightningTower(Tower):
@@ -188,7 +190,7 @@ class LightningTower(Tower):
     
     def _fire(self,target):
         from models.projectile import LightningProjectile
-        return [LightningProjectile(self.grid_pos,target,self.damage,self.chain_count)]
+        return [LightningProjectile(self.grid_pos,target,self.damage,self.chain_count, self)]
     
     def use_skill(self,enemies,grid):
         if not self.skill_ready(): 
@@ -197,7 +199,7 @@ class LightningTower(Tower):
             if e.alive and self._distance_to(e)<=self.attack_range*CELL_SIZE*1.6: 
                 e.take_damage(self.damage*2)
                 e.apply_stun(0.8)
-        self._skill_timer=0
+        self.skill_gauge=0
         return True
 
 class ThornTower(Tower):
@@ -216,13 +218,13 @@ class ThornTower(Tower):
         
         # 🎯 발사할 때 즉시 데미지를 주지 않고, 투사체 오브젝트만 담아서 보냅니다.
         # slow_factor 정보도 투사체에 함께 넘겨주어 명중 시점에 슬로우가 걸리도록 만듭니다.
-        return [ThornProjectile(self.grid_pos, target, self.damage, self.slow_factor)]
+        return [ThornProjectile(self.grid_pos, target, self.damage, self.slow_factor, self)]
     
     def use_skill(self, enemies, grid):
         if not self.skill_ready(): 
             return False
         grid.activate_thorn_overlay(self.grid_pos, self.attack_range, 5.0)
-        self._skill_timer = 0
+        self.skill_gauge = 0
         return True
         
         # 💥 [궁극기] 기존에 짜두신 가시밭길 오버레이 활성화 기능을 그대로 수행합니다.
@@ -249,7 +251,7 @@ class RandomTower(Tower):
         if not self.skill_ready(): 
             return False
         self.burst_timer=3.0
-        self._skill_timer=0
+        self.skill_gauge=0
         return True
     
     def transform(self): 
