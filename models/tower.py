@@ -81,14 +81,44 @@ class Tower(metaclass=ABCMeta):
     def sell(self,economy): 
         economy.earn(self.sell_value())
 
-    def draw(self,surface):
-        px=self.grid_pos[0]*CELL_SIZE
-        py=self.grid_pos[1]*CELL_SIZE
-        self._draw_body(surface,px,py)
-        font=pygame.font.SysFont(None,14)
-        surface.blit(font.render(str(self.merge_level),True,(255,255,255)),(px+CELL_SIZE-10,py+1))
+    def draw(self, surface):
+        px = self.grid_pos[0] * CELL_SIZE
+        py = self.grid_pos[1] * CELL_SIZE
+        
+        # 1. 기존 타워 본체 및 레벨 텍스트 그리기
+        self._draw_body(surface, px, py)
+        font = pygame.font.SysFont(None, 14)
+        surface.blit(font.render(str(self.merge_level), True, (255, 255, 255)), (px + CELL_SIZE - 10, py + 1))
         if self.upgrade_level: 
-            surface.blit(font.render('+'+str(self.upgrade_level),True,(255,240,80)),(px+1,py+1))
+            surface.blit(font.render('+' + str(self.upgrade_level), True, (255, 240, 80)), (px + 1, py + 1))
+
+        # 💡 2. [추가] 타워 머리 위에 스킬 게이지 바 그리기
+        # 현재 스킬 충전 비율 (0.0 ~ 1.0)
+        ratio = self.skill_cooldown_ratio()
+        
+        # 조건에 따른 게이지 바 색상 결정 (100%, 70%이상, 20%이상, 그 미만)
+        if ratio >= 1.0:
+            bar_color = (50, 150, 255)   # 파란색 (100%)
+        elif ratio >= 0.7:
+            bar_color = (70, 220, 80)    # 초록색 (70% 이상)
+        elif ratio >= 0.2:
+            bar_color = (250, 210, 60)   # 노란색 (20% 이상)
+        else:
+            bar_color = (235, 60, 60)    # 빨간색 (20% 미만)
+
+        # 게이지 바 위치 및 크기 설정 (타워 바로 위 배치)
+        bar_width = CELL_SIZE - 6       # 타워 너비에 맞춰 여백을 둔 크기
+        bar_height = 4                  # 바 두께
+        bar_x = px + 3                  # 가로 중앙 정렬을 위한 여백
+        bar_y = py - 7                  # 타워 바디보다 7픽셀 위에 그리기
+
+        # 배경 바 (어두운 회색 뒷배경)
+        pygame.draw.rect(surface, (40, 40, 40), (bar_x, bar_y, bar_width, bar_height))
+        
+        # 현재 게이지 비율만큼 채워지는 전경 바
+        fill_width = int(bar_width * ratio)
+        if fill_width > 0:
+            pygame.draw.rect(surface, bar_color, (bar_x, bar_y, fill_width, bar_height))
 
     def draw_range(self,surface):
         cx=self.grid_pos[0]*CELL_SIZE+CELL_SIZE//2
@@ -115,7 +145,7 @@ class DummyTarget:
 class BombTower(Tower):
     def __init__(self, grid_pos, merge_level=1, upgrade_level=0): 
         super().__init__('bomb', grid_pos, merge_level, upgrade_level)
-        self.bomb_radius = (1.5 + 0.35 * merge_level) * CELL_SIZE
+        self.bomb_radius = (1.4 + 0.35 * merge_level) * CELL_SIZE
 
     def _draw_body(self, s, px, py): 
         pygame.draw.circle(s, (215, 95, 45), (px + CELL_SIZE // 2, py + CELL_SIZE // 2), CELL_SIZE // 2 - 3)

@@ -18,13 +18,13 @@ START_HP = 30
 WAVE_CLEAR_BONUS = 80
 TOWER_STATS = {
     'bomb': {'name':'Bomb','cost':[110,170,260],'damage':[36,58,95],'attack_range':[4.3, 4.3, 4.3],
-             'attack_speed':[1.7, 1.9, 2.5],'skill_cooldown':120,'sell_ratio':0.3,'upgrade_base':15},
+             'attack_speed':[1.7, 1.9, 2.5],'skill_cooldown':500,'sell_ratio':0.3,'upgrade_base':15},
              
     'lightning': {'name':'Lightning','cost':[120,190,280],'damage':[20,34,56],'attack_range':[5.0, 5.3, 5.6],
                   'attack_speed':[0.5, 0.55, 0.6],'skill_cooldown':140,'sell_ratio':0.3,'upgrade_base':16,'chain_count':[2,3,5]},
 
     'thorn': {'name':'Thorn','cost':[100,160,250],'damage':[6,10,16],'attack_range':[3.2, 3.4, 3.6], 
-              'attack_speed':[1.5, 1.6, 1.7],'skill_cooldown':160,'sell_ratio':0.3,'upgrade_base':14,'slow_factor':[0.62,0.52,0.42]},
+              'attack_speed':[1.5, 1.6, 1.7],'skill_cooldown':80,'sell_ratio':0.3,'upgrade_base':14,'slow_factor':[0.62,0.52,0.42]},
 
     'random': {'name':'Random','cost':[40,60,80],'damage':[4, 8],'attack_range':[4.0, 4.3],
                'attack_speed':[2.0, 2.1],'skill_cooldown':100,'sell_ratio':0.3,'upgrade_base':13},
