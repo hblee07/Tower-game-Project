@@ -513,8 +513,21 @@ class RankingScene(BaseScene):
             
         for i, r in enumerate(ranks[:20], 1):
             text_str = f"{i:>2}. {r['name']:<12} {r['score']:,}"
-            img = self.small.render(text_str, True, COLOR_TEXT)
             
+            # 1, 2, 3등 텍스트는 색상도 가독성을 위해 살짝 어두운 톤으로 변경 가능합니다.
+            # 기록이 'No records'일 때는 하이라이트가 되지 않도록 조건 추가
+            if i == 1 and r['score'] > 0:
+                text_color = (40, 35, 10)     # 금색 배경 위 검은색에 가까운 글씨
+            elif i == 2 and r['score'] > 0:
+                text_color = (30, 35, 40)     # 은색 배경 위 글씨
+            elif i == 3 and r['score'] > 0:
+                text_color = (45, 30, 20)     # 동색 배경 위 글씨
+            else:
+                text_color = COLOR_TEXT       # 나머지 순위 기본 색상
+
+            img = self.small.render(text_str, True, text_color)
+            
+            # 좌표 계산
             if i <= 10:
                 start_x = SCREEN_W // 2 - 240
                 start_y = 140 + (i - 1) * 36 
@@ -522,6 +535,19 @@ class RankingScene(BaseScene):
                 start_x = SCREEN_W // 2 + 20
                 start_y = 140 + (i - 11) * 36 
                 
+            # 🏅 [1, 2, 3등 하이라이트 배경 사각형 그리기]
+            if r['score'] > 0: # 유효한 기록이 있을 때만 그리기
+                # 텍스트를 감싸기 적당한 크기의 사각형 영역 설정 (가로 220, 세로 28)
+                rect_bg = pygame.Rect(start_x - 10, start_y - 4, 220, 28)
+                
+                if i == 1:    # 🥇 금상 (Gold)
+                    pygame.draw.rect(surface, (245, 205, 80), rect_bg, border_radius=4)
+                elif i == 2:  # 🥈 은상 (Silver)
+                    pygame.draw.rect(surface, (185, 195, 205), rect_bg, border_radius=4)
+                elif i == 3:  # 🥉 동상 (Bronze)
+                    pygame.draw.rect(surface, (205, 130, 90), rect_bg, border_radius=4)
+            
+            # 배경 위에 글씨 얹기
             surface.blit(img, (start_x, start_y))
             
         msg = self.small.render('Press any key to return', True, (180, 180, 190))
