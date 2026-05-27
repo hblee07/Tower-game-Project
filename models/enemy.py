@@ -180,7 +180,7 @@ class RocketEnemy(BaseEnemy):
             
             # get_image 대신 여기서 직접 로드하고 스케일링하는 방법 A 적용:
             import os # 상단에 import os 추가 필요
-            full_path = os.path.join("assets", "rocket_boss.webp")
+            full_path = os.path.join("assets", "rocket_boss.png")
             
             try:
                 # 1. 이미지 로드
@@ -188,10 +188,10 @@ class RocketEnemy(BaseEnemy):
                 
                 # 💡 2. [크기 재설정] 원본 크기 상관없이 게임 셀 크기로 강제 축소/확대!
                 # settings.py에 CELL_SIZE = 20 으로 되어 있으므로 20x20 크기가 됩니다.
-                self.image = pygame.transform.scale(img, (CELL_SIZE, CELL_SIZE))
+                self.image = pygame.transform.scale(img, (CELL_SIZE * img.get_width() // img.get_height(), CELL_SIZE))
                 
             except pygame.error as e:
-                print(f"Error loading rocket_boss.webp : {e}")
+                print(f"Error loading rocket_boss.png : {e}")
                 # 파일 없을 때 핑크색 사각형 폴백 (이전 get_image 내부 로직 활용)
                 self.image = pygame.Surface((CELL_SIZE, CELL_SIZE))
                 self.image.fill((255, 0, 255))
