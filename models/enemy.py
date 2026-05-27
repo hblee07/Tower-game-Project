@@ -30,29 +30,32 @@ class Enemy:
         if not path: 
             return
             
+        # 게임 시작 직후 등 기존 경로가 없는 예외 상황 처리
+        if not self.path:
+            self.path = path
+            self.path_index = 0
+            self.pixel_pos = list(self._center(path[0]))
+            return
+
+        # 1. 기존 경로에서의 진행율(Percentage) 계산
+        # 예: 40칸 중 30번째 칸 -> 30 / 40 = 0.75 (75%)
+        old_len = len(self.path)
+        progress = self.path_index / old_len
+        
+        # 2. 새 경로 적용
         self.path = path
+        new_len = len(self.path)
         
-        # 💡 [지름길/우회로 보정 로직] 
-        # 새 경로 중에서 현재 적의 픽셀 위치와 가장 가까운 타일(노드)의 인덱스를 찾습니다.
-        closest_idx = 0
-        min_dist = float('inf')
+        # 3. 새 경로 길이에 기존 진행율을 곱한 뒤 내림(int) 처리
+        # 예: 50칸 * 0.75 = 37.5 -> int() 적용으로 소수점 버림되어 37칸이 됨
+        new_idx = int(progress * new_len)
         
-        for i, cell in enumerate(self.path):
-            cx, cy = self._center(cell)
-            # 현재 내 위치와 새 경로 타일 중심 사이의 거리 계산
-            dist = math.hypot(cx - self.pixel_pos[0], cy - self.pixel_pos[1])
-            
-            if dist < min_dist:
-                min_dist = dist
-                closest_idx = i
-                
-        # 가장 가까운 타일 인덱스를 나의 현재 위치로 설정합니다.
-        # 이렇게 하면 다음 프레임에 closest_idx + 1 번째 타일을 향해 자연스럽게 꺾어 들어갑니다.
-        self.path_index = closest_idx
-                
-        # 가장 가까운 타일을 현재 내 경로 인덱스로 설정
-        # (이렇게 하면 move 함수에서 closest_idx + 1 을 향해 자연스럽게 걸어갑니다)
-        self.path_index = closest_idx
+        # 안전장치: 계산된 인덱스가 새 경로 범위를 벗어나지 않도록 제한 (0 ~ 총 길이-1)
+        self.path_index = max(0, min(new_idx, new_len - 1))
+        
+        # 4. ★중요★ 진행율 칸으로 인덱스가 워프했으므로, 
+        # 적의 실제 화면 위치(pixel_pos)도 해당 새 타일의 중앙으로 순간이동 시킵니다.
+        self.pixel_pos = list(self._center(self.path[self.path_index]))
 
     def move(self, dt):
         if not self.alive or self.reached_end or not self.path: 

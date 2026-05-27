@@ -115,7 +115,7 @@ class DummyTarget:
 class BombTower(Tower):
     def __init__(self, grid_pos, merge_level=1, upgrade_level=0): 
         super().__init__('bomb', grid_pos, merge_level, upgrade_level)
-        self.bomb_radius = (1.2 + 0.35 * merge_level) * CELL_SIZE
+        self.bomb_radius = (1.5 + 0.35 * merge_level) * CELL_SIZE
 
     def _draw_body(self, s, px, py): 
         pygame.draw.circle(s, (215, 95, 45), (px + CELL_SIZE // 2, py + CELL_SIZE // 2), CELL_SIZE // 2 - 3)
