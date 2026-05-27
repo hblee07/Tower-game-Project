@@ -57,41 +57,122 @@ class Grid:
         return any(math.hypot(c-o['center'][0], r-o['center'][1]) <= o['radius'] for o in self.thorn_overlays)
     
     def draw(self, surface):
+        # 1. 배경 초기화
+        surface.fill(self.theme.get('bg', (18, 20, 28)))
+        
+        LINE_COLOR = self.theme.get('neon_line', (33, 33, 255))
+        CLOSE_COLOR = self.theme.get('neon_close', (15, 15, 40))
+        
+        GRID_GUIDE_COLOR = self.theme.get('grid', (30,30,45))
+
+
+        THICK = 2
+        CUT = 6  # 꼭짓점 깎기 크기
+
         for r in range(GRID_SIZE):
             for c in range(GRID_SIZE):
-                rect=pygame.Rect(c*CELL_SIZE,r*CELL_SIZE,CELL_SIZE,CELL_SIZE)
+                x = c * CELL_SIZE
+                y = r * CELL_SIZE
+                rect = pygame.Rect(x, y, CELL_SIZE, CELL_SIZE)
+                cell = self.cells[r][c]
                 
-                # 🎨 [테마 컬러 분기] 
-                # 기본 바탕 색상은 이제 스테이지별 빈 땅('grid') 색상을 따릅니다.
-                color = self.theme['grid']
+                # --- [1. 특수 타일 및 장판 처리] ---
+                if self.is_thorn(c, r):
+                    pygame.draw.rect(surface, (45, 85, 35), rect)
+                    continue
+                if cell == START: 
+                    pygame.draw.rect(surface, (230, 50, 50), rect, width=2, border_radius=4)
+                    continue
+                elif cell == END: 
+                    pygame.draw.rect(surface, (50, 230, 80), rect, width=2, border_radius=4)
+                    continue
+                elif cell == TOWER:
+                    pygame.draw.rect(surface, (70, 75, 90), rect, border_radius=4)
+                    continue
                 
-                if (c,r) in self.path: 
-                    # 몬스터 길은 스테이지별 길('path') 색상을 따릅니다.
-                    color = self.theme['path']
+                # --- [2. 벽 (OBSTACLE) 그리기] ---
+                if cell == OBSTACLE:
+                    # 벽 안쪽 채우기
+                    pygame.draw.rect(surface, CLOSE_COLOR, rect, border_radius=4)
                     
-                if self.is_thorn(c,r): 
-                    # 가시 장판은 기본 가시 이펙트 색상과 조화가 어우러지도록 테마 믹스 처리
-                    color=(65,95,45)
+                    # 4방향 이웃 확인
+                    up    = (r > 0 and self.cells[r-1][c] == OBSTACLE)
+                    down  = (r < GRID_SIZE - 1 and self.cells[r+1][c] == OBSTACLE)
+                    left  = (c > 0 and self.cells[r][c-1] == OBSTACLE)
+                    right = (c < GRID_SIZE - 1 and self.cells[r][c+1] == OBSTACLE)
                     
-                cell=self.cells[r][c]
-                if cell==OBSTACLE: 
-                    # 💡 벽(장애물)도 숲/사막/얼음에 맞춰 다르게 보일 수 있도록 믹스업
-                    # 만약 STAGE_THEMES에 'wall'을 추가 정의하지 않은 경우 가독성 조정을 거친 톤 다운 색상을 씁니다.
-                    if 'wall' in self.theme:
-                        color = self.theme['wall']
-                    else:
-                        color = tuple(max(0, val - 20) for val in self.theme['grid']) # 빈땅보다 살짝 어둡게 자동 연산
-                elif cell==TOWER: 
-                    color=(45,45,55)
-                elif cell==START: 
-                    color=(210,70,70)
-                elif cell==END: 
-                    color=(70,190,80)
+                    # 💡 [직선 그리기 개조] 대각선이나 다른 축의 간섭을 완전히 제거
+                    # 가로선을 그릴 때는 좌우(left, right)만 보고, 세로선을 그릴 때는 상하(up, down)만 봅니다.
                     
-                pygame.draw.rect(surface,color,rect)
+                    # ① 위쪽 가로선
+                    if not up:
+                        x1 = x + CUT if not left else x
+                        x2 = x + CELL_SIZE - CUT if not right else x + CELL_SIZE
+                        pygame.draw.line(surface, LINE_COLOR, (x1, y), (x2, y), width=THICK)
+                        
+                    # ② 아래쪽 가로선
+                    if not down:
+                        x1 = x + CUT if not left else x
+                        x2 = x + CELL_SIZE - CUT if not right else x + CELL_SIZE
+                        pygame.draw.line(surface, LINE_COLOR, (x1, y + CELL_SIZE), (x2, y + CELL_SIZE), width=THICK)
+                        
+                    # ③ 왼쪽 세로선
+                    if not left:
+                        y1 = y + CUT if not up else y
+                        y2 = y + CELL_SIZE - CUT if not down else y + CELL_SIZE
+                        pygame.draw.line(surface, LINE_COLOR, (x, y1), (x, y2), width=THICK)
+                        
+                    # ④ 오른쪽 세로선
+                    if not right:
+                        y1 = y + CUT if not up else y
+                        y2 = y + CELL_SIZE - CUT if not down else y + CELL_SIZE
+                        pygame.draw.line(surface, LINE_COLOR, (x + CELL_SIZE, y1), (x + CELL_SIZE, y2), width=THICK)
+                    
+                    # 💡 [모퉁이 사선 마감] 길과 맞닿은 순수 '외곽 꼭짓점'일 때만 사선을 그립니다.
+                    # 좌상단 모퉁이 (위와 왼쪽이 모두 길일 때만 사선 마감)
+                    if not up and not left:
+                        pygame.draw.line(surface, LINE_COLOR, (x + CUT, y), (x, y + CUT), width=THICK)
+
+                    # 우상단 모퉁이
+                    if not up and not right:
+                        pygame.draw.line(surface, LINE_COLOR, (x + CELL_SIZE - CUT, y), (x + CELL_SIZE, y + CUT), width=THICK)
+
+                    # 좌하단 모퉁이
+                    if not down and not left:
+                        pygame.draw.line(surface, LINE_COLOR, (x, y + CELL_SIZE - CUT), (x + CUT, y + CELL_SIZE), width=THICK)
+
+                    # 우하단 모퉁이
+                    if not down and not right:
+                        pygame.draw.line(surface, LINE_COLOR, (x + CELL_SIZE - CUT, y + CELL_SIZE), (x + CELL_SIZE, y + CELL_SIZE - CUT), width=THICK)
                 
-                # 격자 테두리선은 바깥 배경색과 매칭되도록 연출합니다.
-                pygame.draw.rect(surface, self.theme['bg'], rect, 1)
+                elif cell==EMPTY and (c,r) not in self.path:
+                    #pygame.draw.rect(surface, GRID_GUIDE_COLOR, rect, width=1)
+                    center_x, center_y = x + CELL_SIZE // 2, y + CELL_SIZE // 2
+                    pygame.draw.circle(surface, GRID_GUIDE_COLOR, (center_x, center_y), 5)
+        
+        
+        
+        
+        if hasattr(self, 'path') and len(self.path) > 1:
+            path_points = []
+            for (c, r) in self.path:
+                # 각 이동경로 타일의 정중앙 픽셀 좌표 계산
+                center_x = c * CELL_SIZE + CELL_SIZE // 2
+                center_y = r * CELL_SIZE + CELL_SIZE // 2
+                path_points.append((center_x, center_y))
+            
+            # 스테이지 테마 색상 연동
+            PATH_LINE_COLOR = self.theme.get('path', COLOR_PATH)
+            
+            # 1) 전체 경로를 관통하는 부드러운 네온 가이드라인 (두께 2)
+            pygame.draw.lines(surface, PATH_LINE_COLOR, False, path_points, width=2)
+            
+            # 2) 가이드라인 위에 일정한 간격으로 박히는 작은 원형 노드(도트)들
+            for pt in path_points:
+                dot_color = tuple(min(255, v + 40) for v in PATH_LINE_COLOR) # 선보다 살짝 더 밝은 빛 효과
+                pygame.draw.circle(surface, dot_color, pt, 2)
+
+
 
 class Pathfinder:
     def find_path(self, grid):
