@@ -1,6 +1,6 @@
 import os, json, pygame, math
 from collections import deque
-from settings import GRID_SIZE, CELL_SIZE, COLOR_GRID, COLOR_PATH
+from settings import GRID_SIZE, CELL_SIZE, COLOR_GRID, COLOR_PATH, STAGE_THEMES
 EMPTY, OBSTACLE, TOWER, START, END = 0, 1, 2, 3, 4
 
 class Grid:
@@ -10,6 +10,14 @@ class Grid:
         self.end=(GRID_SIZE-1,GRID_SIZE//2)
         self.path=[]; self.thorn_overlays=[]
         self.effect_manager=None
+        
+        # 🎨 [기본 테마 초기화] settings.py에서 선언한 STAGE_THEMES 데이터를 가져와 연동합니다.
+        self.theme = STAGE_THEMES[1] 
+    
+    def set_theme(self, stage_id):
+        # 💡 GameScene이 생성될 때 stage_id를 받아 타일 테마를 완전히 스위칭합니다.
+        if stage_id in STAGE_THEMES:
+            self.theme = STAGE_THEMES[stage_id]
     
     def is_valid(self,c,r): 
         return 0<=c<GRID_SIZE and 0<=r<GRID_SIZE
@@ -52,22 +60,38 @@ class Grid:
         for r in range(GRID_SIZE):
             for c in range(GRID_SIZE):
                 rect=pygame.Rect(c*CELL_SIZE,r*CELL_SIZE,CELL_SIZE,CELL_SIZE)
-                color=COLOR_GRID
+                
+                # 🎨 [테마 컬러 분기] 
+                # 기본 바탕 색상은 이제 스테이지별 빈 땅('grid') 색상을 따릅니다.
+                color = self.theme['grid']
+                
                 if (c,r) in self.path: 
-                    color=COLOR_PATH
+                    # 몬스터 길은 스테이지별 길('path') 색상을 따릅니다.
+                    color = self.theme['path']
+                    
                 if self.is_thorn(c,r): 
+                    # 가시 장판은 기본 가시 이펙트 색상과 조화가 어우러지도록 테마 믹스 처리
                     color=(65,95,45)
+                    
                 cell=self.cells[r][c]
                 if cell==OBSTACLE: 
-                    color=(85,88,95)
+                    # 💡 벽(장애물)도 숲/사막/얼음에 맞춰 다르게 보일 수 있도록 믹스업
+                    # 만약 STAGE_THEMES에 'wall'을 추가 정의하지 않은 경우 가독성 조정을 거친 톤 다운 색상을 씁니다.
+                    if 'wall' in self.theme:
+                        color = self.theme['wall']
+                    else:
+                        color = tuple(max(0, val - 20) for val in self.theme['grid']) # 빈땅보다 살짝 어둡게 자동 연산
                 elif cell==TOWER: 
                     color=(45,45,55)
                 elif cell==START: 
                     color=(210,70,70)
                 elif cell==END: 
                     color=(70,190,80)
+                    
                 pygame.draw.rect(surface,color,rect)
-                pygame.draw.rect(surface,(55,58,64),rect,1)
+                
+                # 격자 테두리선은 바깥 배경색과 매칭되도록 연출합니다.
+                pygame.draw.rect(surface, self.theme['bg'], rect, 1)
 
 class Pathfinder:
     def find_path(self, grid):

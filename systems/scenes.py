@@ -118,6 +118,7 @@ class GameScene(BaseScene):
         self.manager.audio.play_bgm('game')
         self.stage_id = stage_id
         self.grid = Grid()
+        self.grid.set_theme(stage_id) 
         self.pathfinder = Pathfinder()
         self.effect_manager = EffectManager()
         self.grid.effect_manager = self.effect_manager
@@ -417,7 +418,8 @@ class GameScene(BaseScene):
         self.manager.replace('end', result=result, score=score, stage_id=self.stage_id)
 
     def draw(self, surface):
-        surface.fill(COLOR_BG)
+        surface.fill(self.grid.theme['bg'])
+
         self.grid.draw(surface)
         
         if self.selected_build:
