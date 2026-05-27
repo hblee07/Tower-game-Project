@@ -252,6 +252,3 @@ class RandomTower(Tower):
         self.burst_timer=3.0
         self.skill_gauge=0
         return True
-    
-    def transform(self): 
-        return random.choice([BombTower,LightningTower,ThornTower])(self.grid_pos,3,self.upgrade_level)

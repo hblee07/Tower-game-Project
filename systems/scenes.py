@@ -1,5 +1,6 @@
 import pygame
 import math
+import random
 from settings import *
 from systems.map import Grid, Pathfinder, StageLoader
 from systems.wave import WaveManager
@@ -155,10 +156,18 @@ class GameScene(BaseScene):
                 self.wave_manager.start_next_wave(self.grid.path, self.effect_manager)
 
     def recalc_path(self): 
-        self.grid.path = self.pathfinder.find_path(self.grid)
-        if hasattr(self, 'enemies'):
-            for e in self.enemies: 
-                e.set_path(self.grid.path)
+        # 1. 기존 경로를 변수에 백업해둡니다.
+        old_path = self.grid.path
+        
+        # 2. 새로운 최단 경로를 계산해서 적용합니다.
+        new_path = self.pathfinder.find_path(self.grid)
+        self.grid.path = new_path
+        
+        # 3. ★ [핵심] 기존 경로와 새 경로가 '실제로 다를 때만' 적들에게 통보합니다.
+        if old_path != new_path:
+            if hasattr(self, 'enemies'):
+                for e in self.enemies: 
+                    e.set_path(new_path)
     
     def flash_hud_msg(self, text, is_bad=True):
         self.message = text
@@ -266,10 +275,16 @@ class GameScene(BaseScene):
         tower = cls((c, r))
         self.towers.append(tower)
         
-        self.grid.path = new_path
+        # 1. 기존 경로 백업
+        old_path = self.grid.path
         
-        for e in self.enemies: 
-            e.set_path(self.grid.path)
+        # 2. 새 경로 적용
+        self.grid.path = new_path
+
+        # 3. ★ 실제로 경로가 변경되었을 때만 적들의 위치를 보정합니다.
+        if old_path != new_path:
+            for e in self.enemies: 
+                e.set_path(new_path)
 
         self.selected_tower = tower
         self.selected_build = None
@@ -298,16 +313,17 @@ class GameScene(BaseScene):
             return
 
         pos = b.grid_pos
-        new = a.__class__(pos, a.merge_level + 1, 0)
+
+        if isinstance(a, RandomTower) and a.merge_level ==2:
+            new = random.choice([BombTower,LightningTower,ThornTower])(pos, 3, 0)
+        else:
+            new = a.__class__(pos, a.merge_level + 1, 0)
         
         self.towers.remove(a)
         self.towers.remove(b)
         self.grid.remove_tower(*a.grid_pos)
         self.grid.remove_tower(*b.grid_pos)
         self.grid.place_tower(*pos)
-        
-        if isinstance(new, RandomTower) and new.merge_level == 3: 
-            new = new.transform()
             
         self.towers.append(new)
         self.selected_tower = new
