@@ -33,7 +33,7 @@ ENEMY_STATS = {
     'grunt': {'hp':70,'speed':55,'gold':16,'damage':1,'color':(210,80,80)},
     'runner': {'hp':45,'speed':90,'gold':20,'damage':1,'color':(230,170,60)},
     'tank': {'hp':160,'speed':35,'gold':34,'damage':2,'color':(110,190,110)},
-    'boss': {'hp':520,'speed':30,'gold':120,'damage':5,'color':(170,80,220)},
+    'boss': {'hp':520,'speed':100,'gold':120,'damage':30,'color':(170,80,220)},
 }
 
 

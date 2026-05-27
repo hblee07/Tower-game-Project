@@ -1,62 +1,44 @@
-[
-  {
-    "name": "yuyuyyu",
-    "score": 9571
-  },
-  {
-    "name": "hee",
-    "score": 8683
-  },
-  {
-    "name": "gyumin",
-    "score": 8661
-  },
-  {
-    "name": "654",
-    "score": 8621
-  },
-  {
-    "name": "gggg",
-    "score": 8221
-  },
-  {
-    "name": "gdgsd",
-    "score": 8095
-  },
-  {
-    "name": "gyuggg",
-    "score": 7899
-  },
-  {
-    "name": "hi",
-    "score": 7751
-  },
-  {
-    "name": "0526",
-    "score": 7382
-  },
-  {
-    "name": "why.........",
-    "score": 7169
-  },
-  {
-    "name": "hi",
-    "score": 7097
-  },
-  {
-    "name": "fhdf]",
-    "score": 7048
-  },
-  {
-    "name": "bug...",
-    "score": 6950
-  },
-  {
-    "name": "gyumin2",
-    "score": 6900
-  },
-  {
-    "name": "gyumin3",
-    "score": 6800
-  }
-]
+{
+  "1": [
+    {
+      "name": "Alpha",
+      "score": 2540
+    },
+    {
+      "name": "dawn",
+      "score": 2000
+    },
+    {
+      "name": "Beta",
+      "score": 1820
+    },
+    {
+      "name": "PLAYER",
+      "score": 950
+    }
+  ],
+  "2": [
+    {
+      "name": "Charlie",
+      "score": 4310
+    },
+    {
+      "name": "Delta",
+      "score": 3150
+    }
+  ],
+  "3": [
+    {
+      "name": "Echo",
+      "score": 5890
+    },
+    {
+      "name": "test22",
+      "score": 1800
+    },
+    {
+      "name": "kl",
+      "score": 1796
+    }
+  ]
+}

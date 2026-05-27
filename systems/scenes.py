@@ -474,7 +474,7 @@ class EndScene(BaseScene):
         if event.type==pygame.KEYDOWN:
             if event.key==pygame.K_RETURN:
                 if not self.saved: 
-                    self.manager.save_manager.add_ranking(self.name or 'PLAYER',self.score)
+                    self.manager.save_manager.add_ranking(self.name or 'PLAYER',self.score,self.stage_id)
                     self.saved=True
                 self.manager.replace('title')
             elif event.key==pygame.K_BACKSPACE: 
@@ -496,38 +496,95 @@ class RankingScene(BaseScene):
         self.manager.audio.play_bgm('ranking')
         self.font = pygame.font.SysFont(None, 48)  
         self.small = pygame.font.SysFont(None, 24) 
+        
+        # 🔄 현재 보고 있는 스테이지 상태 변수 (1 ~ 3)
+        self.current_stage = 1
+        self.max_stages = 3
+        
+        # 📐 화살표 버튼 클릭 영역 (Rect) 생성
+        # Y좌표 50 주변에서 가로세로 40 크기로 클릭 범위가 넉넉하도록 설정
+        self.left_btn = pygame.Rect(SCREEN_W // 2 - 200, 48, 40, 40)
+        self.right_btn = pygame.Rect(SCREEN_W // 2 + 160, 48, 40, 40)
 
     def handle_event(self, event):
-        if event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN: 
-            self.manager.replace('title')
+        if event.type == pygame.QUIT:
+            return
+            
+        # 1. 마우스 클릭 처리
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:  # 마우스 좌클릭
+                # 왼쪽 화살표 박스를 눌렀을 때
+                if self.left_btn.collidepoint(event.pos):
+                    self.current_stage -= 1
+                    if self.current_stage < 1: 
+                        self.current_stage = self.max_stages
+                    return  # 💡 중요: 스테이지 전환 성공 시 이벤트 종료 (타이틀 이동 방지)
+                    
+                # 오른쪽 화살표 박스를 눌렀을 때
+                elif self.right_btn.collidepoint(event.pos):
+                    self.current_stage = (self.current_stage % self.max_stages) + 1
+                    return  # 💡 중요: 스테이지 전환 성공 시 이벤트 종료
+                
+                # 화살표 영역 외의 '화면 위/아래 여백'을 누르면 타이틀 화면으로 돌아갑니다.
+                elif event.pos[1] < 120 or event.pos[1] > 500:
+                    self.manager.replace('title')
+                    
+        # 2. 키보드 입력 처리
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:  # ESC 누르면 타이틀로
+                self.manager.replace('title')
+            elif event.key == pygame.K_RIGHT:  # 오른쪽 방향키 ➔ 다음 스테이지
+                self.current_stage = (self.current_stage % self.max_stages) + 1
+            elif event.key == pygame.K_LEFT:   # 왼쪽 방향키 ➔ 이전 스테이지
+                self.current_stage -= 1
+                if self.current_stage < 1: 
+                    self.current_stage = self.max_stages
 
     def draw(self, surface):
         surface.fill((18, 22, 32))
         
-        title = self.font.render('Ranking Table', True, (255, 235, 130))
-        surface.blit(title, title.get_rect(center=(SCREEN_W // 2, 60)))
+        # 🏷️ 상단 타이틀 텍스트
+        title_text = f'Stage {self.current_stage} Ranking'
+        title = self.font.render(title_text, True, (255, 235, 130))
+        surface.blit(title, title.get_rect(center=(SCREEN_W // 2, 66)))
         
-        ranks = self.manager.save_manager.load_rankings()
-        if not ranks: 
+        # 📐 [왼쪽 화살표 '◀' 그리기]
+        pygame.draw.polygon(surface, (200, 200, 200), [
+            (self.left_btn.right, self.left_btn.top + 5),
+            (self.left_btn.right, self.left_btn.bottom - 5),
+            (self.left_btn.left + 10, self.left_btn.centery)
+        ])
+        
+        # 📐 [오른쪽 화살표 '▶' 그리기]
+        pygame.draw.polygon(surface, (200, 200, 200), [
+            (self.right_btn.left, self.right_btn.top + 5),
+            (self.right_btn.left, self.right_btn.bottom - 5),
+            (self.right_btn.right - 10, self.right_btn.centery)
+        ])
+        
+        # 🔄 현재 선택된 스테이지의 랭킹 데이터를 로드
+        ranks = self.manager.save_manager.load_rankings(self.current_stage)
+        
+        # 데이터 유효성 검증
+        if not isinstance(ranks, list) or not ranks: 
             ranks = [{'name': 'No records', 'score': 0}]
             
+        # 랭킹 리스트 출력 (최대 20개)
         for i, r in enumerate(ranks[:20], 1):
             text_str = f"{i:>2}. {r['name']:<12} {r['score']:,}"
             
-            # 1, 2, 3등 텍스트는 색상도 가독성을 위해 살짝 어두운 톤으로 변경 가능합니다.
-            # 기록이 'No records'일 때는 하이라이트가 되지 않도록 조건 추가
             if i == 1 and r['score'] > 0:
-                text_color = (40, 35, 10)     # 금색 배경 위 검은색에 가까운 글씨
+                text_color = (40, 35, 10)
             elif i == 2 and r['score'] > 0:
-                text_color = (30, 35, 40)     # 은색 배경 위 글씨
+                text_color = (30, 35, 40)
             elif i == 3 and r['score'] > 0:
-                text_color = (45, 30, 20)     # 동색 배경 위 글씨
+                text_color = (45, 30, 20)
             else:
-                text_color = COLOR_TEXT       # 나머지 순위 기본 색상
+                text_color = COLOR_TEXT
 
             img = self.small.render(text_str, True, text_color)
             
-            # 좌표 계산
+            # 2열 배치 좌표 계산
             if i <= 10:
                 start_x = SCREEN_W // 2 - 240
                 start_y = 140 + (i - 1) * 36 
@@ -535,20 +592,18 @@ class RankingScene(BaseScene):
                 start_x = SCREEN_W // 2 + 20
                 start_y = 140 + (i - 11) * 36 
                 
-            # 🏅 [1, 2, 3등 하이라이트 배경 사각형 그리기]
-            if r['score'] > 0: # 유효한 기록이 있을 때만 그리기
-                # 텍스트를 감싸기 적당한 크기의 사각형 영역 설정 (가로 220, 세로 28)
+            # 🏅 1, 2, 3등 배경 박스 그리기
+            if r['score'] > 0:
                 rect_bg = pygame.Rect(start_x - 10, start_y - 4, 220, 28)
-                
-                if i == 1:    # 🥇 금상 (Gold)
+                if i == 1:
                     pygame.draw.rect(surface, (245, 205, 80), rect_bg, border_radius=4)
-                elif i == 2:  # 🥈 은상 (Silver)
+                elif i == 2:
                     pygame.draw.rect(surface, (185, 195, 205), rect_bg, border_radius=4)
-                elif i == 3:  # 🥉 동상 (Bronze)
+                elif i == 3:
                     pygame.draw.rect(surface, (205, 130, 90), rect_bg, border_radius=4)
             
-            # 배경 위에 글씨 얹기
             surface.blit(img, (start_x, start_y))
             
-        msg = self.small.render('Press any key to return', True, (180, 180, 190))
+        # 하단 안내 메시지
+        msg = self.small.render('<- / -> : Change Stage  |  ESC or Click Top/Bottom : Return', True, (150, 150, 160))
         surface.blit(msg, msg.get_rect(center=(SCREEN_W // 2, 540)))
