@@ -6,6 +6,7 @@ class Tower(metaclass=ABCMeta):
     def __init__(self, tower_type, grid_pos, merge_level=1, upgrade_level=0):
         self.tower_type=tower_type
         self.grid_pos=tuple(grid_pos)
+        self.alive = True
         self.merge_level=merge_level
         self.upgrade_level=upgrade_level
         s=TOWER_STATS[tower_type]
@@ -33,9 +34,10 @@ class Tower(metaclass=ABCMeta):
     def add_skill_gauge(self, damage_deal):
         self.skill_gauge = min(self.skill_cooldown_max, self.skill_gauge + damage_deal)
     
-    def _find_target(self,enemies):
-        in_range=[e for e in enemies if e.alive and self._distance_to(e)<=self.attack_range*CELL_SIZE]
-        return max(in_range,key=lambda e:e.path_progress, default=None)
+    def _find_target(self, enemies):
+        in_range = [e for e in enemies if e.alive and self._distance_to(e) <= self.attack_range * CELL_SIZE]
+        # 💡 수정: path_progress 대신 path_index 기준으로 가장 멀리 간 적 탐색
+        return max(in_range, key=lambda e: e.path_index, default=None)
     
     def _distance_to(self,e):
         cx=self.grid_pos[0]*CELL_SIZE+CELL_SIZE//2
@@ -140,7 +142,7 @@ class DummyTarget:
     def __init__(self, pos):
         self.pixel_pos = pos
         self.alive = True
-        self.path_progress = 0
+        self.path_index = 0 # 💡 수정: path_progress를 path_index로 변경
 
 class BombTower(Tower):
     def __init__(self, grid_pos, merge_level=1, upgrade_level=0): 

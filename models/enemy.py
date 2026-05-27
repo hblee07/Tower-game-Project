@@ -1,121 +1,340 @@
 import pygame, math
-from settings import CELL_SIZE, ENEMY_STATS
+from settings import *
 
-class Enemy:
+# 이미지 캐싱 (매번 로드하는 것을 방지)
+_IMAGE_CACHE = {}
+
+def get_image(path):
+    global _IMAGE_CACHE
+    if path not in _IMAGE_CACHE:
+        try:
+            full_path = f"assets/{path}"
+            _IMAGE_CACHE[path] = pygame.image.load(full_path).convert_alpha()
+        except pygame.error:
+            # 이미지 없을 경우 임시 사각형 반환
+            surf = pygame.Surface((CELL_SIZE, CELL_SIZE), pygame.SRCALPHA)
+            pygame.draw.rect(surf, (255, 0, 255), (0, 0, CELL_SIZE, CELL_SIZE))
+            _IMAGE_CACHE[path] = surf
+    return _IMAGE_CACHE[path]
+
+# ==========================================
+# 1. Base Enemy (부모 클래스)
+# ==========================================
+class BaseEnemy:
     def __init__(self, kind, path, wave_scale=1.0):
-        s=ENEMY_STATS[kind]
-        self.kind=kind
-        self.max_hp=int(s['hp']*wave_scale)
-        self.hp=self.max_hp
-        self.speed=s['speed']
-        self.base_speed=s['speed']
-        self.gold=s['gold']
-        self.castle_damage=s['damage']
-        self.color=s['color']
-        self.path=path[:]
-        self.path_index=0
-        self.pixel_pos=list(self._center(path[0] if path else (0,0)))
-        self.alive=True
-        self.reached_end=False
-        self.slow_timer=0
-        self.slow_factor=1
-        self.stun_timer=0
-        self.path_progress=0
-        self.regen_timer=0 if kind=='boss' else None
+        s = ENEMY_STATS.get(kind, ENEMY_STATS['ghost_normal'])
+        self.kind = kind
+        self.is_boss = s['is_boss']
+        
+        self.max_hp = int(s['hp'] * wave_scale)
+        self.hp = self.max_hp
+        self.base_speed = s['speed']
+        self.speed = self.base_speed
+        self.gold = s['gold']
+        self.castle_damage = s['damage']
+        self.color = s['color']
+        
+        self.path = path[:]
+        self.path_index = 0
+        self.pixel_pos = list(self._center(path[0] if path else (0,0)))
+        
+        self.alive = True
+        self.reached_end = False
+        self.slow_timer = 0
+        self.slow_factor = 1
+        self.stun_timer = 0
+        self.current_angle = 0 # 이동 방향 (회전용)
 
     def _center(self, cell): 
         return (cell[0]*CELL_SIZE+CELL_SIZE/2, cell[1]*CELL_SIZE+CELL_SIZE/2)
-    
+
     def set_path(self, path):
-        if not path: 
-            return
-            
-        # 게임 시작 직후 등 기존 경로가 없는 예외 상황 처리
+        if not path: return
         if not self.path:
-            self.path = path
-            self.path_index = 0
+            self.path = path; self.path_index = 0
             self.pixel_pos = list(self._center(path[0]))
             return
-
-        # 1. 기존 경로에서의 진행율(Percentage) 계산
-        # 예: 40칸 중 30번째 칸 -> 30 / 40 = 0.75 (75%)
+            
         old_len = len(self.path)
         progress = self.path_index / old_len
-        
-        # 2. 새 경로 적용
         self.path = path
         new_len = len(self.path)
-        
-        # 3. 새 경로 길이에 기존 진행율을 곱한 뒤 내림(int) 처리
-        # 예: 50칸 * 0.75 = 37.5 -> int() 적용으로 소수점 버림되어 37칸이 됨
         new_idx = int(progress * new_len)
-        
-        # 안전장치: 계산된 인덱스가 새 경로 범위를 벗어나지 않도록 제한 (0 ~ 총 길이-1)
         self.path_index = max(0, min(new_idx, new_len - 1))
-        
-        # 4. ★중요★ 진행율 칸으로 인덱스가 워프했으므로, 
-        # 적의 실제 화면 위치(pixel_pos)도 해당 새 타일의 중앙으로 순간이동 시킵니다.
         self.pixel_pos = list(self._center(self.path[self.path_index]))
 
     def move(self, dt):
-        if not self.alive or self.reached_end or not self.path: 
+        if not self.alive or self.reached_end or not self.path: return
+        if self.stun_timer > 0: 
+            self.stun_timer -= dt
             return
-        if self.stun_timer>0: 
-            self.stun_timer-=dt
-            return
-        if self.slow_timer>0: 
-            self.slow_timer-=dt
-        else: 
-            self.slow_factor=1
-        if self.kind=='boss':
-            self.regen_timer += dt
-            if self.regen_timer >= 1.0: 
-                self.hp=min(self.max_hp, self.hp+3)
-                self.regen_timer=0
-        speed=self.base_speed*self.slow_factor
-        remain=speed*dt
-        while remain>0 and self.path_index < len(self.path)-1:
-            tx,ty=self._center(self.path[self.path_index+1])
-            dx=tx-self.pixel_pos[0]
-            dy=ty-self.pixel_pos[1]
-            dist=math.hypot(dx,dy)
+        if self.slow_timer > 0: self.slow_timer -= dt
+        else: self.slow_factor = 1
+
+        speed = self.speed * self.slow_factor
+        remain = speed * dt
+
+        while remain > 0 and self.path_index < len(self.path)-1:
+            tx, ty = self._center(self.path[self.path_index+1])
+            dx = tx - self.pixel_pos[0]
+            dy = ty - self.pixel_pos[1]
+            dist = math.hypot(dx, dy)
+            
+            if dist > 0:
+                self.current_angle = math.degrees(math.atan2(-dy, dx))
+
             if dist <= remain:
-                self.pixel_pos=[tx,ty]
-                self.path_index+=1
-                self.path_progress=self.path_index
-                remain-=dist
-            elif dist>0:
-                self.pixel_pos[0]+=dx/dist*remain
-                self.pixel_pos[1]+=dy/dist*remain
-                remain=0
+                self.pixel_pos = [tx, ty]
+                self.path_index += 1
+                remain -= dist
+            elif dist > 0:
+                self.pixel_pos[0] += dx/dist*remain
+                self.pixel_pos[1] += dy/dist*remain
+                remain = 0
+                
         if self.path_index >= len(self.path)-1: 
-            self.reached_end=True
+            self.reached_end = True
 
     def take_damage(self, amount):
+        if not self.alive: return
         self.hp -= amount
-        if self.hp <= 0: 
-            self.alive=False
+        if self.hp <= 0:
+            self.alive = False
 
     def apply_slow(self, factor, duration): 
-        self.slow_factor=min(self.slow_factor, factor)
-        self.slow_timer=max(self.slow_timer, duration)
+        self.slow_factor = min(self.slow_factor, factor)
+        self.slow_timer = max(self.slow_timer, duration)
 
     def apply_stun(self, duration): 
-        self.stun_timer=max(self.stun_timer, duration)
-        
-    def draw(self, surface):
-        x, y = map(int, self.pixel_pos)
-        radius = 8 if self.kind != 'boss' else 12
-        
-        # 1. 몬스터 본체 그리기
-        pygame.draw.circle(surface, self.color, (x, y), radius)
-        
-        # 💡 체력이 만땅(최대 체력)이 아닐 때만 머리 위에 체력바를 그립니다.
-        if self.hp < self.max_hp:
-            # 체력바 검은색 배경 뒷부분 (24 픽셀 너비)
-            pygame.draw.rect(surface, (20, 20, 20), (x - 12, y - radius - 8, 24, 4))
-            
-            # 남은 체력 비율 계산
+        self.stun_timer = max(self.stun_timer, duration)
+
+    def draw_health_bar(self, surface, x, y):
+        if self.hp < self.max_hp and self.hp > 0:
+            bar_w = CELL_SIZE // 2
+            bar_x = x - bar_w // 2
+            bar_y = y - (CELL_SIZE // 2) - 5
+            pygame.draw.rect(surface, (20, 20, 20), (bar_x, bar_y, bar_w, 4))
             pct = max(0.0, self.hp) / self.max_hp
-            # 초록색 남은 체력 바 그리기
-            pygame.draw.rect(surface, (70, 220, 80), (x - 12, y - radius - 8, int(24 * pct), 4))
+            color = (170, 80, 220) if self.is_boss else (70, 220, 80)
+            pygame.draw.rect(surface, color, (bar_x, bar_y, int(bar_w * pct), 4))
+
+    def draw(self, surface):
+        """기본 그리기 (일반 도형). 자식 클래스에서 오버라이드 됨"""
+        x, y = map(int, self.pixel_pos)
+        pygame.draw.circle(surface, self.color, (x, y), CELL_SIZE // 4)
+        self.draw_health_bar(surface, x, y)
+
+
+# ==========================================
+# 2. 유령 Enemy
+# ==========================================
+class GhostEnemy(BaseEnemy):
+    def __init__(self, kind, path, wave_scale=1.0, ghost_color=None):
+        super().__init__(kind, path, wave_scale)
+        
+        if ghost_color:
+            self.color = ghost_color
+
+        # 💡 보스일 때만 이미지 로드
+        if self.is_boss:
+            # 문자열('red')이 아니라 settings의 실제 색상 변수(튜플)와 비교해야 합니다!
+            if ghost_color == COLOR_GHOST_RED:
+                img = get_image('ghost_boss_red.png')       # assets/ 제거 완료
+            elif ghost_color == COLOR_GHOST_PINK:
+                img = get_image('ghost_boss_pink.png')
+            elif ghost_color == COLOR_GHOST_CYAN:           # wave.py 스펙에 맞춰 blue 대신 cyan으로 변경
+                img = get_image('ghost_boss_cyan.png')
+            else:
+                img = get_image('ghost_boss_orange.png')
+
+            # 가져온 이미지를 CELL_SIZE(20x20) 크기로 강제 셋팅!
+            self.image = pygame.transform.scale(img, (CELL_SIZE, CELL_SIZE))
+
+    def draw(self, surface):
+        if not self.alive: return
+        
+        if self.is_boss:
+            x, y = map(int, self.pixel_pos)
+            img_to_draw = self.image.copy()
+            
+            # 이미 색상이 완벽히 칠해진 개별 이미지를 쓰므로 
+            # 원본을 해치지 않으려면 아래 fill(BLEND_MULT) 라인은 주석 처리하거나 지우는 것을 추천합니다.
+            # img_to_draw.fill(self.color, special_flags=pygame.BLEND_RGBA_MULT)
+                
+            rect = img_to_draw.get_rect(center=(x, y))
+            surface.blit(img_to_draw, rect)
+            self.draw_health_bar(surface, x, y)
+        else:
+            super().draw(surface)
+
+# ==========================================
+# 3. 로켓 Enemy
+# ==========================================
+class RocketEnemy(BaseEnemy):
+    def __init__(self, kind, path, wave_scale=1.0):
+        super().__init__(kind, path, wave_scale)
+        # 보스일 때만 이미지 로드
+        if self.is_boss:
+            # 💡 [핵심] 그냥 가져오는 것이 아니라 크기 조절 로직이 포함된 get_image를 써야 합니다.
+            # 하지만 현재 get_image는 크기 조절을 안 하므로, 여기서 직접 조절합니다.
+            
+            # get_image 대신 여기서 직접 로드하고 스케일링하는 방법 A 적용:
+            import os # 상단에 import os 추가 필요
+            full_path = os.path.join("assets", "rocket_boss.webp")
+            
+            try:
+                # 1. 이미지 로드
+                img = pygame.image.load(full_path).convert_alpha()
+                
+                # 💡 2. [크기 재설정] 원본 크기 상관없이 게임 셀 크기로 강제 축소/확대!
+                # settings.py에 CELL_SIZE = 20 으로 되어 있으므로 20x20 크기가 됩니다.
+                self.image = pygame.transform.scale(img, (CELL_SIZE, CELL_SIZE))
+                
+            except pygame.error as e:
+                print(f"Error loading rocket_boss.webp : {e}")
+                # 파일 없을 때 핑크색 사각형 폴백 (이전 get_image 내부 로직 활용)
+                self.image = pygame.Surface((CELL_SIZE, CELL_SIZE))
+                self.image.fill((255, 0, 255))
+
+    def draw(self, surface):
+        if not self.alive: return
+        
+        # 보스면 회전하는 이미지를, 아니면 기본 도형을 그립니다.
+        if self.is_boss:
+            x, y = map(int, self.pixel_pos)
+            # 💡 회전 시 중앙이 맞도록 rect 계산 필수
+            rotated_img = pygame.transform.rotate(self.image, self.current_angle)
+            rect = rotated_img.get_rect(center=(x, y))
+            surface.blit(rotated_img, rect)
+            self.draw_health_bar(surface, x, y)
+        else:
+            # 일반 로켓은 settings.py의 CELL_SIZE // 4 반경의 원으로 그림 (BaseEnemy 로직)
+            super().draw(surface)
+
+
+# ==========================================
+# 4. 팩맨 Enemy
+# ==========================================
+class PacmanEnemy(BaseEnemy):
+    def __init__(self, kind, path, wave_scale=1.0):
+        super().__init__(kind, path, wave_scale)
+        self.mouth_open_angle = 45 # 평소 입 벌린 각도
+        self.original_size = CELL_SIZE // 2
+        
+        # 보스 전용 데스 이펙트 변수
+        self.is_dying = False
+        self.death_effect_timer = 0
+        self.death_effect_duration = 1.0
+        self.target_tower = None
+        
+        self.current_size = self.original_size
+        self.current_mouth_angle = self.mouth_open_angle
+        self.death_angle = 0
+
+    def take_damage(self, amount):
+        if not self.alive or self.is_dying: return
+        self.hp -= amount
+        
+        if self.hp <= 0:
+            if self.is_boss:
+                self.hp = 0
+                self.is_dying = True # 사망 이펙트 돌입
+            else:
+                self.alive = False
+
+    def start_death_effect(self, target_tower):
+        self.target_tower = target_tower
+        if self.target_tower:
+            # 💡 [수정] target_tower.pixel_pos 대신 부모의 _center 메서드와 타워의 grid_pos를 사용합니다.
+            tx, ty = self._center(self.target_tower.grid_pos)
+            
+            dx = tx - self.pixel_pos[0]
+            dy = ty - self.pixel_pos[1]
+            self.death_angle = math.degrees(math.atan2(-dy, dx))
+
+    def move(self, dt):
+        # 데스 이펙트 중이면 이동 대신 이펙트 처리
+        if self.is_dying:
+            self._update_death_effect(dt)
+            return
+            
+        super().move(dt)
+
+    def _update_death_effect(self, dt):
+        if not self.target_tower or not self.target_tower.alive:
+            self.alive = False
+            return
+
+        self.death_effect_timer += dt
+        progress = min(1.0, self.death_effect_timer / self.death_effect_duration)
+        
+        # 💡 [수정] 여기도 마찬가지로 픽셀 좌표를 계산하도록 수정합니다.
+        tx, ty = self._center(self.target_tower.grid_pos)
+        
+        dx = tx - self.pixel_pos[0]
+        dy = ty - self.pixel_pos[1]
+        dist = math.hypot(dx, dy)
+
+        if progress < 0.8: # 커지면서 입 벌림
+            eat_progress = progress / 0.8
+            self.current_size = self.original_size + (dist * eat_progress)
+            self.current_mouth_angle = self.mouth_open_angle + (180 - self.mouth_open_angle) * eat_progress
+        else: # 입 닫기
+            close_progress = (progress - 0.8) / 0.2
+            self.current_size = self.original_size + dist
+            self.current_mouth_angle = 180 * (1.0 - close_progress)
+
+        if progress >= 1.0:
+            self.target_tower.alive = False # 타워 소멸
+            self.alive = False # 팩맨 소멸
+
+    def draw(self, surface):
+        if not self.alive: return
+        
+        # 💡 [추가된 핵심 로직] 보스가 아닌 일반 팩맨은 기본 원으로 그리고 종료!
+        if not self.is_boss:
+            super().draw(surface)
+            return
+            
+        # --- 아래는 보스 팩맨(is_boss == True)일 때만 실행됩니다 ---
+        x, y = map(int, self.pixel_pos)
+        
+        # 상태에 따라 각도 및 크기 결정
+        angle = self.death_angle if self.is_dying else self.current_angle
+        mouth = self.current_mouth_angle if self.is_dying else self.mouth_open_angle
+        size = self.current_size if self.is_dying else self.original_size
+
+        radius = int(size)
+        start_angle = mouth / 2 + angle
+        end_angle = 360 - (mouth / 2) + angle
+        
+        points = [(x, y)]
+        num_points = 20
+        for i in range(num_points + 1):
+            ang = start_angle + (end_angle - start_angle) * (i / num_points)
+            px = x + math.cos(math.radians(-ang)) * radius
+            py = y + math.sin(math.radians(-ang)) * radius
+            points.append((px, py))
+            
+        if len(points) > 2:
+            pygame.draw.polygon(surface, self.color, points)
+            pygame.draw.polygon(surface, (0,0,0), points, 2) # 테두리
+
+        if not self.is_dying:
+            self.draw_health_bar(surface, x, y)
+
+
+# ==========================================
+# 5. Enemy 팩토리 함수 (WaveManager가 사용할 함수)
+# ==========================================
+def create_enemy(kind, path, wave_scale=1.0, ghost_color=None):
+    """문자열 kind를 받아 알맞은 클래스의 인스턴스를 반환합니다."""
+    if 'ghost' in kind:
+        return GhostEnemy(kind, path, wave_scale, ghost_color)
+    elif 'rocket' in kind:
+        return RocketEnemy(kind, path, wave_scale)
+    elif 'pacman' in kind:
+        return PacmanEnemy(kind, path, wave_scale)
+    else:
+        # 기본 폴백
+        return BaseEnemy(kind, path, wave_scale)

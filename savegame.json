@@ -1,0 +1,74 @@
+{
+  "stage_id": 1,
+  "gold": 761,
+  "hp": 30,
+  "wave": {
+    "current_wave": 2,
+    "all_clear": false
+  },
+  "towers": [
+    {
+      "type": "bomb",
+      "grid_pos": [
+        4,
+        9
+      ],
+      "merge_level": 1,
+      "upgrade_level": 0
+    },
+    {
+      "type": "bomb",
+      "grid_pos": [
+        3,
+        10
+      ],
+      "merge_level": 1,
+      "upgrade_level": 0
+    },
+    {
+      "type": "bomb",
+      "grid_pos": [
+        2,
+        11
+      ],
+      "merge_level": 1,
+      "upgrade_level": 0
+    },
+    {
+      "type": "thorn",
+      "grid_pos": [
+        16,
+        7
+      ],
+      "merge_level": 1,
+      "upgrade_level": 0
+    },
+    {
+      "type": "thorn",
+      "grid_pos": [
+        16,
+        5
+      ],
+      "merge_level": 1,
+      "upgrade_level": 0
+    },
+    {
+      "type": "lightning",
+      "grid_pos": [
+        16,
+        9
+      ],
+      "merge_level": 2,
+      "upgrade_level": 0
+    },
+    {
+      "type": "bomb",
+      "grid_pos": [
+        16,
+        11
+      ],
+      "merge_level": 1,
+      "upgrade_level": 0
+    }
+  ]
+}

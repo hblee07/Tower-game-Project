@@ -389,6 +389,15 @@ class GameScene(BaseScene):
             if self.grid.is_thorn(c, r): 
                 e.take_damage(10 * dt)
                 e.apply_slow(0.45, 0.2)
+
+            # 💡 추가: 팩맨 보스가 죽음 상태(is_dying)가 되면 타워 탐색 후 데스 이펙트 시작
+            if getattr(e, 'is_dying', False) and e.target_tower is None:
+                closest_tower = self._find_closest_tower(e)
+                if closest_tower:
+                    e.start_death_effect(closest_tower)
+                else:
+                    e.alive = False # 주변에 남은 타워가 없으면 즉시 소멸
+
             e.move(dt)
             if e.reached_end: 
                 self.castle_hp.take_damage(e.castle_damage)
@@ -411,6 +420,17 @@ class GameScene(BaseScene):
             self.economy.earn(e.gold)
         self.enemies = [e for e in self.enemies if e.alive and not e.reached_end]
         self.projectiles = [p for p in self.projectiles if p.alive]
+        
+        # 💡 추가: 팩맨 보스에게 먹혀서 파괴된 타워 맵에서 제거
+        dead_towers = [t for t in self.towers if not getattr(t, 'alive', True)]
+        if dead_towers:
+            for t in dead_towers:
+                self.towers.remove(t)
+                self.grid.remove_tower(*t.grid_pos)
+                if self.selected_tower == t:
+                    self.selected_tower = None # 선택 중이던 타워가 먹혔을 때 예외 처리
+            self.recalc_path() # 타워가 없어졌으므로 길 다시 찾기
+            
         if self.wave_manager.spawner_done and not self.enemies and not self.wave_manager.all_clear: 
             self.wave_manager.on_wave_enemies_cleared()
 
@@ -458,6 +478,15 @@ class GameScene(BaseScene):
         self.hud.draw(surface, self)
         if self.paused: 
             self.pause_overlay.draw(surface)
+
+    # 💡 추가: 팩맨 보스가 자폭할 때 사용할 근처 타워 탐색 함수
+    def _find_closest_tower(self, enemy):
+        alive_towers = [t for t in self.towers if getattr(t, 'alive', True)]
+        if not alive_towers:
+            return None
+        return min(alive_towers, 
+                   key=lambda t: math.hypot(t.grid_pos[0]*CELL_SIZE - enemy.pixel_pos[0], 
+                                            t.grid_pos[1]*CELL_SIZE - enemy.pixel_pos[1]))
 
 class EndScene(BaseScene):
     def __init__(self,manager,result,score, stage_id=1): 
