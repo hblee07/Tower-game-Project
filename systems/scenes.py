@@ -17,12 +17,11 @@ class SceneManager:
         self.scene=None
         self.audio=AudioManager()
         
-        # 🔒 [스테이지 해금 정보 관리]
-        # 랭킹처럼 세이브 매니저를 통해 관리하도록 연동합니다.
-        self.unlocked_stages = self.save_manager.load_rankings() # 임시 혹은 기본값 세팅용
-        # 만약 세이브매니저에 따로 스테이지 저장 기능이 없다면, 여기 매니저 레벨에서 우선 상태를 전역 관리합니다.
+        self.unlocked_stages = self.save_manager.load_rankings() 
+        
+        # 🔓 [잠금 기능 해제] 모든 스테이지를 처음부터 True(해금)로 설정합니다.
         if not hasattr(self, 'unlocked_stages_dict'):
-            self.unlocked_stages_dict = {1: True, 2: False, 3: False} # 1층만 열림, 2/3층 잠김
+            self.unlocked_stages_dict = {1: True, 2: True, 3: True} # 2, 3층도 전부 True로 변경!
 
     def replace(self, scene_name, **kwargs):
         self.scene=self._build(scene_name, **kwargs)
@@ -68,10 +67,9 @@ class TitleScene(BaseScene):
         self.small=pygame.font.SysFont(None,28)
         cx=SCREEN_W//2
         
-        # 🛠️ [Stage 3 버튼 추가 및 레이아웃 재배치] y간격을 균등 조정했습니다.
         self.buttons=[('Stage 1',pygame.Rect(cx-120,160,240,40),'stage1'),
                       ('Stage 2',pygame.Rect(cx-120,210,240,40),'stage2'),
-                      ('Stage 3',pygame.Rect(cx-120,260,240,40),'stage3'), # 🆕 Stage 3 추가!
+                      ('Stage 3',pygame.Rect(cx-120,260,240,40),'stage3'), 
                       ('Continue',pygame.Rect(cx-120,310,240,40),'continue'),
                       ('Ranking',pygame.Rect(cx-120,360,240,40),'ranking'),
                       ('Quit',pygame.Rect(cx-120,410,240,40),'quit')]
@@ -80,12 +78,12 @@ class TitleScene(BaseScene):
         if event.type==pygame.MOUSEBUTTONDOWN and event.button==1:
             for _,rect,act in self.buttons:
                 if rect.collidepoint(event.pos):
-                    # 🔒 [클릭 제어] 잠겨있는 스테이지라면 클릭 무시
-                    if act == 'stage1' and self.manager.unlocked_stages_dict.get(1):
+                    # 🔓 [클릭 제한 해제] 잠금 검사 없이 누르는 대로 즉시 해당 스테이지로 진입합니다.
+                    if act == 'stage1':
                         self.manager.replace('game',stage_id=1)
-                    elif act == 'stage2' and self.manager.unlocked_stages_dict.get(2):
+                    elif act == 'stage2':
                         self.manager.replace('game',stage_id=2)
-                    elif act == 'stage3' and self.manager.unlocked_stages_dict.get(3): # 🆕 Stage 3 진입
+                    elif act == 'stage3': 
                         self.manager.replace('game',stage_id=3)
                     elif act=='continue':
                         data=self.manager.save_manager.load()
@@ -102,20 +100,16 @@ class TitleScene(BaseScene):
         surface.blit(title,title.get_rect(center=(SCREEN_W//2,90)))
         
         for text,rect,act in self.buttons:
-            # 🔒 [잠금 UI 시각화] 스테이지 종류에 따라 해금 상태 파악
+            # 🔓 [UI 상시 활성화] 모든 버튼이 항상 활성화된 밝은 스타일로 그려집니다.
             enabled = True
-            if act == 'stage1': enabled = self.manager.unlocked_stages_dict.get(1, False)
-            elif act == 'stage2': enabled = self.manager.unlocked_stages_dict.get(2, False)
-            elif act == 'stage3': enabled = self.manager.unlocked_stages_dict.get(3, False)
-            elif act == 'continue': enabled = self.manager.save_manager.has_save()
+            if act == 'continue': enabled = self.manager.save_manager.has_save()
             
-            # 잠겨있으면 어두운 회색색상 (45, 48, 55), 열려있으면 파란빛 회색 (70, 82, 96)
+            # 모든 스테이지 버튼은 항상 활성화 색상(70, 82, 96)으로 통일됩니다.
             pygame.draw.rect(surface,(70,82,96) if enabled else (40,42,48),rect,border_radius=8)
             pygame.draw.rect(surface,(185,190,200) if enabled else (90,95,100),rect,2,border_radius=8)
             
-            # 잠겨있으면 글씨도 어둡게 렌더링
-            display_text = text if enabled or 'Stage' not in text else f"{text} (Locked)"
-            img=self.small.render(display_text, True, COLOR_TEXT if enabled else (100,100,100))
+            # 더 이상 (Locked) 문구를 붙이지 않고 정직하게 스테이지 이름만 띄웁니다.
+            img=self.small.render(text, True, COLOR_TEXT if enabled else (100,100,100))
             surface.blit(img,img.get_rect(center=rect.center))
 
 class GameScene(BaseScene):
@@ -160,10 +154,7 @@ class GameScene(BaseScene):
                 self.wave_manager.start_next_wave(self.grid.path, self.effect_manager)
 
     def recalc_path(self): 
-        # 1. 맵의 새로운 최단 경로 계산 (타워가 사라진 상태의 지름길)
         self.grid.path = self.pathfinder.find_path(self.grid)
-        
-        # 2. 게임 씬이 처음 생성될 때(__init__) 아직 enemies 리스트가 없다면 건너뛰도록 방어
         if hasattr(self, 'enemies'):
             for e in self.enemies: 
                 e.set_path(self.grid.path)
@@ -257,11 +248,9 @@ class GameScene(BaseScene):
             self.flash_hud_msg('Not enough gold')
             return
             
-        # 1. 그리드에 타워를 가상으로 배치하고 새 경로를 계산합니다.
         self.grid.place_tower(c, r)
         new_path = self.pathfinder.find_path(self.grid)
         
-        # 길막 방지 검사
         if not new_path: 
             self.grid.remove_tower(c, r)
             self.flash_hud_msg('Cannot block path')
@@ -276,15 +265,11 @@ class GameScene(BaseScene):
         tower = cls((c, r))
         self.towers.append(tower)
         
-        # 💡 [여기서부터 핵심 경로 분기 로직]
-        tower_pos = (c, r)
-        
         self.grid.path = new_path
         
         for e in self.enemies: 
             e.set_path(self.grid.path)
 
-        # 8. UI 선택 상태 초기화
         self.selected_tower = tower
         self.selected_build = None
 
@@ -421,14 +406,14 @@ class GameScene(BaseScene):
     def end(self, result):
         score = self.score_system.calc_score(self.wave_manager.current_wave, self.castle_hp.hp, self.economy.gold)
         
-        # 🔒 [해금 로직 연동] 스테이지를 이겼을 때(win) 다음 스테이지 잠금을 풀어줍니다.
+        # 💡 [구조 유지] 내부 해금 로직 딕셔너리 업데이트 연동은 남겨두어 에러를 방지하되, 
+        # 이미 모두 열려있기 때문에 게임 플레이 및 잠금 유무에 전혀 영향을 주지 않습니다.
         if result == 'win':
             next_stage = self.stage_id + 1
             if next_stage in self.manager.unlocked_stages_dict:
                 self.manager.unlocked_stages_dict[next_stage] = True
                 
         self.manager.save_manager.delete()
-        # EndScene으로 현재 끝난 스테이지 ID도 같이 넘겨줍니다.
         self.manager.replace('end', result=result, score=score, stage_id=self.stage_id)
 
     def draw(self, surface):
@@ -480,16 +465,12 @@ class EndScene(BaseScene):
                 self.name+=event.unicode
     def draw(self,surface):
         surface.fill((24,20,30))
-        
-        # 👑 스테이지 클리어 문구 고도화 (예: Stage 1 VICTORY)
         status_text = f'Stage {self.stage_id} VICTORY' if self.result=='win' else 'DEFEAT'
         title=self.font.render(status_text,True,(255,235,130))
         surface.blit(title,title.get_rect(center=(SCREEN_W//2,150)))
         for i,line in enumerate([f'Score: {self.score}','Type name and press ENTER',self.name or '_']):
             img=self.small.render(line,True,COLOR_TEXT)
             surface.blit(img,img.get_rect(center=(SCREEN_W//2,240+i*40)))
-
-# scenes.py 파일 최하단에 그대로 붙여넣으세요
 
 class RankingScene(BaseScene):
     def __init__(self, manager): 
@@ -505,7 +486,6 @@ class RankingScene(BaseScene):
     def draw(self, surface):
         surface.fill((18, 22, 32))
         
-        # 1. 타이틀 그리기
         title = self.font.render('Ranking Table', True, (255, 235, 130))
         surface.blit(title, title.get_rect(center=(SCREEN_W // 2, 60)))
         
@@ -513,25 +493,18 @@ class RankingScene(BaseScene):
         if not ranks: 
             ranks = [{'name': 'No records', 'score': 0}]
             
-        # 최대 20등까지 가져와서 좌우 2열로 배치
         for i, r in enumerate(ranks[:20], 1):
-            # 텍스트 포맷팅 (등수와 이름을 예쁘게 결합)
             text_str = f"{i:>2}. {r['name']:<12} {r['score']:,}"
             img = self.small.render(text_str, True, COLOR_TEXT)
             
             if i <= 10:
-                # 1~10등: 왼쪽 열 (X 좌표를 화면 중앙 기준 왼쪽으로 배치)
                 start_x = SCREEN_W // 2 - 240
-                # i가 1일 때 140, 10일 때 464에 그려짐
                 start_y = 140 + (i - 1) * 36 
             else:
-                # 11~20등: 오른쪽 열 (X 좌표를 화면 중앙 기준 오른쪽으로 배치)
                 start_x = SCREEN_W // 2 + 20
-                # i가 11일 때 140, 20일 때 464에 그려져서 왼쪽 열과 완벽하게 높이가 맞음!
                 start_y = 140 + (i - 11) * 36 
                 
             surface.blit(img, (start_x, start_y))
             
-        # 2. 하단 안내 메시지
         msg = self.small.render('Press any key to return', True, (180, 180, 190))
         surface.blit(msg, msg.get_rect(center=(SCREEN_W // 2, 540)))
