@@ -80,10 +80,42 @@ class HUD:
         # 상단 기본 정보 출력
         self.draw_text(surface, f"Gold: {game.economy.gold}", x, 12, color=(255, 235, 130))
         
-        hp_color = (100, 230, 100) if game.castle_hp.hp > 5 else (255, 90, 90)
-        self.draw_text(surface, f"Castle HP: {game.castle_hp.hp}", x + 105, 12, color=hp_color)
-        self.draw_text(surface, f"Wave: {game.wave_manager.current_wave}/5", x, 34)
-        self.draw_text(surface, f"Stage: {game.stage_id}", x + 105, 34)
+        # =================🔥 [Castle HP 및 HP Bar 출력] =================
+        hp_x = x + 105
+        hp_y = 12
+        self.draw_text(surface, f"Castle HP: {game.castle_hp.hp}", hp_x, hp_y)
+        
+        # HP Bar 위치 및 크기 설정 (숫자 텍스트 바로 아래 배치)
+        hp_bar_x = hp_x
+        hp_bar_y = hp_y + 16
+        hp_bar_w = 95
+        hp_bar_h = 8
+        
+        # HP 비율 계산 (예시로 최대 체력을 10으로 가정, game.castle_hp.max_hp 가 있다면 교체 가능)
+        max_hp = getattr(game.castle_hp, 'max_hp', 10) 
+        hp_ratio = min(1.0, max(0.0, game.castle_hp.hp / max_hp))
+        current_hp_bar_w = int(hp_bar_w * hp_ratio)
+        
+        # 비율에 따른 4단계 색상 구분 (스킬 게이지와 유사한 규칙)
+        if hp_ratio >= 0.9:       # 90% 이상: 안전/풀피 (파랑 계열)
+            hp_bar_color = (45, 140, 215)
+        elif hp_ratio >= 0.5:     # 50% 이상: 양호 (초록 계열)
+            hp_bar_color = (70, 210, 120)
+        elif hp_ratio >= 0.25:    # 25% 이상: 경고 (노랑 계열)
+            hp_bar_color = (245, 200, 65)
+        else:                     # 25% 미만: 위기 (빨강 계열)
+            hp_bar_color = (235, 75, 75)
+            
+        # HP Bar 그리기 (배경 -> 잔량 -> 테두리)
+        pygame.draw.rect(surface, (40, 45, 55), (hp_bar_x, hp_bar_y, hp_bar_w, hp_bar_h), border_radius=2)
+        if current_hp_bar_w > 0:
+            pygame.draw.rect(surface, hp_bar_color, (hp_bar_x, hp_bar_y, current_hp_bar_w, hp_bar_h), border_radius=2)
+        pygame.draw.rect(surface, (80, 85, 95), (hp_bar_x, hp_bar_y, hp_bar_w, hp_bar_h), 1, border_radius=2)
+        # ===============================================================
+
+        # Wave 및 Stage 출력 (HP Bar 영역 침범 방지를 위해 y축을 +2씩 아래로 미세 조정)
+        self.draw_text(surface, f"Wave: {game.wave_manager.current_wave}/5", x, 36)
+        self.draw_text(surface, f"Stage: {game.stage_id}", x + 105, 36)
         
         # 빌드 섹션 타이틀 및 버튼들
         self.draw_text(surface, "Towers (Build)", x, 58, self.big, (255, 235, 130))
