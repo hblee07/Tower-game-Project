@@ -193,7 +193,9 @@ class GameScene(BaseScene):
                 elif event.key == pygame.K_m: 
                     self.merge_source = self.selected_tower
                     self.flash_hud_msg('Select same tower to merge', is_bad=False)
-                    
+                elif event.key == pygame.K_SPACE:
+                    self.selected_tower.use_skill(self.enemies, self.grid)
+
         if self.paused:
             if self.pause_overlay.handle_event(event) == 'resume': 
                 self.paused = False
