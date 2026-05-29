@@ -26,9 +26,9 @@ class HUDButton:
 class HUD:
     def __init__(self):
         # 폰트 크기를 조금 더 컴팩트하게 다듬어 가독성과 공간을 모두 잡습니다.
-        self.font = pygame.font.SysFont(None, 19)      
-        self.small = pygame.font.SysFont(None, 15)    
-        self.big = pygame.font.SysFont(None, 21, bold=True)
+        self.font = pygame.font.SysFont(None, 22)      
+        self.small = pygame.font.SysFont(None, 18)    
+        self.big = pygame.font.SysFont(None, 25, bold=True)
         self.invalid_timer = 0
         self.message = ''
         self.build_buttons = []
@@ -160,7 +160,7 @@ class HUD:
 
         # 💡 조작 가이드 안내 (머지 정보 통합 및 고정 위치 정리)
 
-        self.draw_text(surface, "L-Click: place/select | ESC: cancel", x, 216, self.small, (170, 170, 170))
+        self.draw_text(surface, "L-Click: place/select | ESC: cancel | SPACE: use skill", x, 216, self.small, (170, 170, 170))
 
         self.draw_text(surface, "P: pause | M: merge (same type & Lv)", x, 232, self.small, (170, 170, 170))
 
