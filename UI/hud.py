@@ -69,7 +69,7 @@ class HUD:
 
     def flash_invalid(self, msg='Invalid action'):
 
-        self.invalid_timer = 1.2
+        self.invalid_timer = 2
 
         self.message = msg
 
@@ -322,7 +322,7 @@ class HUD:
 
            
 
-            img = self.small.render(str(self.message), True, msg_color)
+            img = self.font.render(str(self.message), True, msg_color)
 
             text_rect = img.get_rect(center=alert_rect.center)
 
