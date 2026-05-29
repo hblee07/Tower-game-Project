@@ -26,6 +26,14 @@ START_GOLD = 1000
 START_HP = 30
 WAVE_CLEAR_BONUS = 80
 
+WAVES = [
+    [('rocket_normal', 10), ('boss_rocket', 1)],
+    [('pacman_normal', 15), ('boss_pacman', 1)],
+    [('ghost_normal', 10), ('boss_ghost_sequence', 1)],
+    [('pacman_normal', 10), ('pacman_normal', 10), ('boss_pacman', 1), ('boss_rocket', 1)],
+    [('rocket_normal',10),('boss_ghost_sequence', 1), ('boss_pacman', 1)],
+]
+
 TOWER_STATS = {
     'bomb': {'name':'Bomb','cost':[110,170,260],'damage':[36,58,95],'attack_range':[4.3, 4.3, 4.3],
              'attack_speed':[1.7, 1.9, 2.5],'skill_cooldown':500,'sell_ratio':0.3,'upgrade_base':15},

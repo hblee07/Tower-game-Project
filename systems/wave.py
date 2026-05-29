@@ -1,15 +1,8 @@
 from models.enemy import create_enemy
-from settings import WAVE_CLEAR_BONUS, COLOR_GHOST_RED, COLOR_GHOST_PINK, COLOR_GHOST_CYAN, COLOR_GHOST_ORANGE
+from settings import WAVE_CLEAR_BONUS, COLOR_GHOST_RED, COLOR_GHOST_PINK, COLOR_GHOST_CYAN, COLOR_GHOST_ORANGE, WAVES
 
 GHOST_BOSS_COLORS = [COLOR_GHOST_RED, COLOR_GHOST_PINK, COLOR_GHOST_CYAN, COLOR_GHOST_ORANGE]
 
-WAVES = [
-    [('rocket_normal', 10), ('boss_rocket', 1)],
-    [('pacman_normal', 15), ('boss_pacman', 1)],
-    [('ghost_normal', 10), ('boss_ghost_sequence', 1)],
-    [('pacman_normal', 10), ('pacman_normal', 10), ('boss_pacman', 1), ('boss_rocket', 1)],
-    [('boss_ghost_sequence', 1), ('boss_pacman', 1)],
-]
 
 class WaveManager:
     def __init__(self, economy=None, stage_id=1):
