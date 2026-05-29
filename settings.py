@@ -81,3 +81,11 @@ STAGE_THEMES = {
         'grid': (20, 30, 25), 'path': (255, 255, 255)
     }
 }
+
+BGM_PATH = {
+    'Title_Screen': 'Title Screen_Daycore - RobTop - Geometry Dash Menu Theme (Slowed Down).mp3',
+    'Stage1': 'Stage1_MDK - Fingerbang.mp3',
+    'Stage2': 'Stage2_DJVI - Back On Track.mp3',
+    'Stage3': 'Stage3_Waterflame_Jumper.mp3',
+    'Rank_Screen': 'Rank Screen_MDK - Fingerbang.mp3'
+}

@@ -63,7 +63,7 @@ class BaseScene:
 class TitleScene(BaseScene):
     def __init__(self,manager):
         super().__init__(manager)
-        self.manager.audio.play_bgm('title')
+        self.manager.audio.play_bgm('Title_Screen')
         self.font=pygame.font.SysFont(None,56)
         self.small=pygame.font.SysFont(None,28)
         cx=SCREEN_W//2
@@ -116,7 +116,7 @@ class TitleScene(BaseScene):
 class GameScene(BaseScene):
     def __init__(self, manager, stage_id, save_data=None):
         super().__init__(manager)
-        self.manager.audio.play_bgm('game')
+        self.manager.audio.play_bgm(f'Stage{stage_id}')
         self.stage_id = stage_id
         self.grid = Grid()
         self.grid.set_theme(stage_id) 
@@ -491,7 +491,7 @@ class GameScene(BaseScene):
 class EndScene(BaseScene):
     def __init__(self,manager,result,score, stage_id=1): 
         super().__init__(manager)
-        self.manager.audio.play_bgm('end')
+        self.manager.audio.stop()
         self.result=result
         self.score=score
         self.stage_id = stage_id
@@ -522,7 +522,7 @@ class EndScene(BaseScene):
 class RankingScene(BaseScene):
     def __init__(self, manager): 
         super().__init__(manager)
-        self.manager.audio.play_bgm('ranking')
+        self.manager.audio.play_bgm('Rank_Screen')
         self.font = pygame.font.SysFont(None, 48)  
         self.small = pygame.font.SysFont(None, 24) 
         
