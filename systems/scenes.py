@@ -19,10 +19,8 @@ class SceneManager:
         self.audio=AudioManager()
         
         self.unlocked_stages = self.save_manager.load_rankings() 
-        
-        # 🔓 [잠금 기능 해제] 모든 스테이지를 처음부터 True(해금)로 설정합니다.
         if not hasattr(self, 'unlocked_stages_dict'):
-            self.unlocked_stages_dict = {1: True, 2: True, 3: True} # 2, 3층도 전부 True로 변경!
+            self.unlocked_stages_dict = {1: True, 2: True, 3: True}
 
     def replace(self, scene_name, **kwargs):
         self.scene=self._build(scene_name, **kwargs)
@@ -97,9 +95,10 @@ class TitleScene(BaseScene):
                         
     def draw(self,surface):
         surface.fill((20,24,34))
-        title=self.font.render('Tower Defense Game',True,(255,235,130))
+        title=self.font.render('Tower Defense Game',True,(0,200,255))
         surface.blit(title,title.get_rect(center=(SCREEN_W//2,90)))
-        
+        soundtracks_text = self.small.render('soundtracks from geometry dash', True, (100,100,100))
+        surface.blit(soundtracks_text, (5, SCREEN_H-30))
         for text,rect,act in self.buttons:
             # 🔓 [UI 상시 활성화] 모든 버튼이 항상 활성화된 밝은 스타일로 그려집니다.
             enabled = True
@@ -147,14 +146,19 @@ class GameScene(BaseScene):
         
         self.hud = HUD()
         self.pause_overlay = PauseOverlay()
-        
+
+        self.checkpoint_gold = self.economy.gold
+        self.checkpoint_hp = self.castle_hp.hp
+        self.checkpoint_wave = self.wave_manager.current_wave
+        self.checkpoint_towers = [t.to_dict() for t in self.towers]
+
         if save_data: 
             self.restore(save_data)
             self.wave_manager.load_current_wave(self.grid.path, self.effect_manager)
         else:
             if not self.wave_manager.all_clear and not self.wave_manager.active and not self.wave_manager.waiting_for_clear: 
                 self.wave_manager.start_next_wave(self.grid.path, self.effect_manager)
-
+                self.make_checkpoint()
     def recalc_path(self): 
         # 1. 기존 경로를 변수에 백업해둡니다.
         old_path = self.grid.path
@@ -193,8 +197,6 @@ class GameScene(BaseScene):
                 elif event.key == pygame.K_m: 
                     self.merge_source = self.selected_tower
                     self.flash_hud_msg('Select same tower to merge', is_bad=False)
-                elif event.key == pygame.K_SPACE:
-                    self.selected_tower.use_skill(self.enemies, self.grid)
 
         if self.paused:
             if self.pause_overlay.handle_event(event) == 'resume': 
@@ -293,7 +295,7 @@ class GameScene(BaseScene):
 
     def try_merge(self, a, b):
         if a.upgrade_level != MAX_UPGRADE_LEVEL or b.upgrade_level != MAX_UPGRADE_LEVEL:
-            self.flash_hud_msg('Both Tower need to be level 5 for merge')
+            self.flash_hud_msg(f'Both Tower need to be level {MAX_MERGE_LEVEL} for merge')
             self.merge_source = None
             return
         if a is b or a.tower_type != b.tower_type or a.merge_level != b.merge_level or a.merge_level >= 3:
@@ -336,10 +338,13 @@ class GameScene(BaseScene):
     def upgrade_selected(self):
         if not self.selected_tower: 
             return
-        if self.selected_tower.upgrade(self.economy):
+        if self.selected_tower.upgrade_level >= MAX_UPGRADE_LEVEL:
+            self.flash_hud_msg('Already at max upgrade level', is_bad=True)
+            return
+        elif self.selected_tower.upgrade(self.economy):
             self.flash_hud_msg('Upgrade successful!', is_bad=False)
         else:
-            self.flash_hud_msg('Upgrade unavailable / Max Level')
+            self.flash_hud_msg('Upgrade unavailable : Not enough gold', is_bad=True)
 
     def sell_selected(self):
         if not self.selected_tower: 
@@ -351,14 +356,22 @@ class GameScene(BaseScene):
         self.selected_tower = None
         self.recalc_path()
         self.flash_hud_msg('Tower sold', is_bad=False)
+    def make_checkpoint(self):
+        self.checkpoint_gold = self.economy.gold
+        self.checkpoint_hp = self.castle_hp.hp
+        self.checkpoint_wave = self.wave_manager.current_wave
+        self.checkpoint_towers = [t.to_dict() for t in self.towers]
+
 
     def save(self):
         self.manager.save_manager.save({
             'stage_id': self.stage_id,
-            'gold': self.economy.gold,
-            'hp': self.castle_hp.hp,
-            'wave': self.wave_manager.to_dict(),
-            'towers': [t.to_dict() for t in self.towers]
+            'gold': self.checkpoint_gold,
+            'hp': self.checkpoint_hp,
+            'wave': {
+                'current_wave':self.checkpoint_wave,
+                'all_clear':self.wave_manager.all_clear },
+            'towers': self.checkpoint_towers
         })
         self.flash_hud_msg('Saved completely', is_bad=False)
 
@@ -373,6 +386,7 @@ class GameScene(BaseScene):
             self.towers.append(t)
             self.grid.place_tower(*t.grid_pos)
         self.recalc_path()
+        self.make_checkpoint()
 
     def update(self, dt):
         self.hud.update(dt)
@@ -432,9 +446,14 @@ class GameScene(BaseScene):
                 if self.selected_tower == t:
                     self.selected_tower = None # 선택 중이던 타워가 먹혔을 때 예외 처리
             self.recalc_path() # 타워가 없어졌으므로 길 다시 찾기
-            
+
+        old_wave=self.wave_manager.current_wave
+
         if self.wave_manager.spawner_done and not self.enemies and not self.wave_manager.all_clear: 
             self.wave_manager.on_wave_enemies_cleared()
+            if self.wave_manager.current_wave != old_wave:
+                self.make_checkpoint()
+
 
     def check_end(self):
         if self.castle_hp.is_dead(): 

@@ -6,7 +6,7 @@ from systems.save import SaveManager
 
 def main():
     pygame.init()
-    pygame.display.set_caption('Tower Defense')
+    pygame.display.set_caption('Tower Defense Game')
     screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
     clock = pygame.time.Clock()
     manager = SceneManager(screen, SaveManager())

@@ -8,7 +8,7 @@ FPS = 60
 SAVE_FILE = 'savegame.json'
 RANKING_FILE = 'ranking.json'
 
-# --- 색상 정의 ---
+#색깔들
 COLOR_GRID = (38, 42, 48)
 COLOR_PATH = (92, 86, 70)
 COLOR_BG = (18, 20, 28)
@@ -19,6 +19,7 @@ COLOR_GHOST_PINK = (255, 184, 255)
 COLOR_GHOST_CYAN = (0, 255, 255)
 COLOR_GHOST_ORANGE = (255, 184, 82)
 
+#최대 레벨, 시작 조건
 MAX_MERGE_LEVEL = 3
 MAX_UPGRADE_LEVEL = 3
 START_GOLD = 1000
@@ -39,51 +40,47 @@ TOWER_STATS = {
                'attack_speed':[2.0, 2.1, 2.2],'skill_cooldown':100,'sell_ratio':0.3,'upgrade_base':13},
 }
 
-# (이후 ENEMY_STATS 와 STAGE_THEMES 는 기존 작성하신 그대로 유지하시면 됩니다.)
-
 ENEMY_STATS = {
-    # --- 일반 Enemy ---
-    # 유령 일반: HP 많은 편
+    #일반
+    #유령 일반 - HP 많음
     'ghost_normal': {'hp': 150, 'speed': 50, 'gold': 20, 'damage': 1, 'color': (200, 200, 0), 'is_boss': False},
-    # 로켓 일반: 이동 속도 빠른 편
+    #로켓 일반 - 속도 빠름
     'rocket_normal': {'hp': 60, 'speed': 100, 'gold': 30, 'damage': 1, 'color': (200, 200, 200), 'is_boss': False},
-    # 팩맨 일반: HP 조금 많고 속도 조금 빠름 (중간 느낌)
+    #팩맨 일반 - 중간 수준
     'pacman_normal': {'hp': 100, 'speed': 75, 'gold': 25, 'damage': 1, 'color': (50, 255, 180), 'is_boss': False},
 
-    # --- 보스 Enemy ---
-    # 유령 보스: HP 매우 많음 (색상은 생성 시 덮어씌움)
+    #보스
+    #유령 보스 - HP 매우 많음, 다수(4마리)
     'boss_ghost': {'hp': 600, 'speed': 50, 'gold': 150, 'damage': 5, 'color': COLOR_GHOST_RED, 'is_boss': True},
-    # 로켓 보스: 속도 매우 빠름, HP 적음, 성 공격력 셈
+    #로켓 보스 - 속도 매우 빠름, HP 적음, 성 공격력 셈
     'boss_rocket': {'hp': 120, 'speed': 110, 'gold': 150, 'damage': 20, 'color': (50, 50, 200), 'is_boss': True},
-    # 팩맨 보스: 타워 먹는 특수 능력
+    #팩맨 보스 - 죽는 순간 타워 먹기
     'boss_pacman': {'hp': 400, 'speed': 70, 'gold': 200, 'damage': 10, 'color': COLOR_PACMAN, 'is_boss': True},
 }
 
-GHOST_BOSS_SPEED = [52, 48, 44, 40]
+GHOST_BOSS_SPEED = [52, 48, 44, 40] #
 
-
-# settings.py 예시 (이런 형태로 색상을 추가해 주시면 됩니다!)
 STAGE_THEMES = {
     1: {
-        'bg': (5, 5, 15),          # 기본 전체 배경 (완전 어두운 남색)
-        'neon_line': (33, 33, 255),  # 🥇 1스테이지: 클래식 팩맨 네온 블루 선
-        'neon_close': (15, 15, 40), # 벽 안쪽 채우기 색상
-        'grid': (20, 20, 30), 'path': (255, 255, 255) # 기존 변수 유지용
+        'bg': (5, 5, 15),          
+        'neon_line': (33, 33, 255),  
+        'neon_close': (15, 15, 40), 
+        'grid': (20, 20, 30), 'path': (255, 255, 255) 
     },
     2: {
-        'bg': (10, 5, 5),           # 🥈 2스테이지: 불타는 사막 테마 배경
-        'neon_line': (255, 50, 50),  # 네온 레드 선
+        'bg': (10, 5, 5),           
+        'neon_line': (255, 50, 50),  
         'neon_close': (40, 15, 15),
         'grid': (30, 20, 20), 'path': (255, 255, 255)
     },
     3: {
-        'bg': (5, 15, 10),          # 🥉 3스테이지: 독성 물질/숲 테마 배경
-        'neon_line': (50, 255, 50),  # 네온 그린 선
+        'bg': (5, 15, 10),          
+        'neon_line': (50, 255, 50),  
         'neon_close': (15, 40, 20),
         'grid': (20, 30, 25), 'path': (255, 255, 255)
     }
 }
-
+ #bgm은 geometry dash의 음악을 사용함
 BGM_PATH = {
     'Title_Screen': 'Title Screen_Daycore - RobTop - Geometry Dash Menu Theme (Slowed Down).mp3',
     'Stage1': 'Stage1_MDK - Fingerbang.mp3',
