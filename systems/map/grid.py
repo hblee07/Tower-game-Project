@@ -149,8 +149,7 @@ class Grid:
                     #pygame.draw.rect(surface, GRID_GUIDE_COLOR, rect, width=1)
                     center_x, center_y = x + CELL_SIZE // 2, y + CELL_SIZE // 2
                     pygame.draw.circle(surface, GRID_GUIDE_COLOR, (center_x, center_y), 5)
-                    if self.is_thorn(c, r):
-                        pygame.draw.circle(surface, (50,200,80), (center_x, center_y), 5)
+                    
                     
         
         
@@ -172,6 +171,29 @@ class Grid:
             for pt in path_points:
                 dot_color = tuple(min(255, v + 40) for v in PATH_LINE_COLOR) # 선보다 살짝 더 밝은 빛 효과
                 pygame.draw.circle(surface, dot_color, pt, 2)
+
+        if hasattr(self, 'thorn_overlays'):
+            for overlay in self.thorn_overlays:
+                tc, tr = overlay['center']  # 중심 타일 좌표
+                
+                # 실제 화면 픽셀 중심점 계산
+                cx = tc * CELL_SIZE + CELL_SIZE // 2
+                cy = tr * CELL_SIZE + CELL_SIZE // 2
+                pixel_radius = int(overlay['radius'] * CELL_SIZE) # 반지름 픽셀 변환
+                
+                # 1. 원을 그릴 커다란 정사각형 모양의 투명 Surface 생성
+                surf_size = pixel_radius * 2
+                # pygame.SRCALPHA 를 넣어야 투명도를 다룰 수 있습니다.
+                overlay_surf = pygame.Surface((surf_size, surf_size), pygame.SRCALPHA)
+                
+                # 2. 투명 Surface의 중심에 원 그리기 (RGBA: 마지막 값이 투명도이며, 0~255 중 60이 적당히 은은합니다)
+                # 안쪽 채우기 원 (두께 지정 안 하면 가득 채워집니다)
+                pygame.draw.circle(overlay_surf, (50, 200, 80, 60), (pixel_radius, pixel_radius), pixel_radius)
+                # 외곽선 원 (두께 3)
+                pygame.draw.circle(overlay_surf, (120, 255, 150, 180), (pixel_radius, pixel_radius), pixel_radius, width=1)
+                
+                # 3. 메인 화면(surface)에 반투명 Surface를 올바른 위치에 얹기 (Blit)
+                surface.blit(overlay_surf, (cx - pixel_radius, cy - pixel_radius))
 
 
 

@@ -13,7 +13,8 @@ class BasicProjectile:
 
     def update(self, dt):
         if not self.target.alive: 
-            self.alive=False; return
+            self.alive=False
+            return
         tx,ty=self.target.pixel_pos
         dx=tx-self.x
         dy=ty-self.y

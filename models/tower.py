@@ -272,7 +272,7 @@ class RandomTower(Tower):
 
     def _fire(self,target):
         from models.projectile import BasicProjectile
-        return [BasicProjectile(self.grid_pos,target,self.damage*(3 if self.burst_timer>0 else 1))]
+        return [BasicProjectile(self.grid_pos,target,self.damage*(3 if self.burst_timer>0 else 1),260,self)]
     
     def update(self,dt,enemies): 
         self.burst_timer=max(0,self.burst_timer-dt)

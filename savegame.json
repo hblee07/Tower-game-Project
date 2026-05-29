@@ -1,7 +1,7 @@
 {
-  "stage_id": 1,
-  "gold": 327,
-  "hp": 14,
+  "stage_id": 2,
+  "gold": 1000,
+  "hp": 30,
   "wave": {
     "current_wave": 3,
     "all_clear": false

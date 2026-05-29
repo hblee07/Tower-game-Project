@@ -34,40 +34,31 @@ class HUD:
         self.build_buttons = []
         self.action_buttons = {}
 
-        bx = BOARD_W + 50
+        # 📐 양옆 여백을 15px로 확 줄여서 버튼이 가득 차게 만듭니다.
+        hud_width = SCREEN_W - BOARD_W  # 보통 300px 내외
+        padding = 15
+        
+        bx = BOARD_W + padding                         # 시작 X 좌표를 테두리 근처로 밀기
+        full_button_w = hud_width - (padding * 2)      # 300 - 30 = 270px로 크기 대폭 확장!
+        half_button_w = (full_button_w - 10) // 2      # Skill, Upgrade 분할 버튼 크기 (사잇간격 10)
 
         by = 80
 
+        # 1. 빌드 버튼 꽉 차게 배치
         for t in ['bomb', 'lightning', 'thorn', 'random']:
-
             st = TOWER_STATS[t]
-
-            self.build_buttons.append(HUDButton((bx, by, 200, 28), f"{st['name']} {st['cost'][0]}G", f"build_{t}"))
-
+            self.build_buttons.append(HUDButton((bx, by, full_button_w, 28), f"{st['name']} {st['cost'][0]}G", f"build_{t}"))
             by += 32
 
-
-
-        # 2. 기능성 액션 버튼 고정 배치 (절대 겹치지 않는 황금 Y 좌표 할당)
-
-        # 스킬/업그레이드는 y=380, 판매는 y=412로 고정하여 스킬바(y=348)와 완벽히 분리됩니다.
-
-        self.action_buttons['skill'] = HUDButton((BOARD_W + 50, 380, 92, 28), "Skill", "skill", (90, 85, 130))
-
-        self.action_buttons['upgrade'] = HUDButton((BOARD_W + 158, 380, 92, 28), "Upgrade", "upgrade", (70, 100, 90))
-
-        self.action_buttons['sell'] = HUDButton((BOARD_W + 50, 412, 200, 28), "Sell", "sell", (120, 75, 75))
-
+        # 2. 기능성 액션 버튼 고정 배치
+        self.action_buttons['skill'] = HUDButton((bx, 380, half_button_w, 28), "Skill", "skill", (90, 85, 130))
+        self.action_buttons['upgrade'] = HUDButton((bx + half_button_w + 10, 380, half_button_w, 28), "Upgrade", "upgrade", (70, 100, 90))
+        
+        self.action_buttons['sell'] = HUDButton((bx, 412, full_button_w, 28), "Sell", "sell", (120, 75, 75))
        
-
-        # 시스템 제어 버튼 고정 (알림창 바로 위 안착)
-
-        self.action_buttons['save'] = HUDButton((BOARD_W + 50, 444, 200, 28), "Save", "save", (70, 90, 120))
-
-        self.action_buttons['title'] = HUDButton((BOARD_W + 50, 476, 200, 28), "Title", "title", (80, 80, 90))
-
-
-
+        # 3. 시스템 제어 버튼 고정 배치
+        self.action_buttons['save'] = HUDButton((bx, 444, full_button_w, 28), "Save", "save", (70, 90, 120))
+        self.action_buttons['title'] = HUDButton((bx, 476, full_button_w, 28), "Title", "title", (80, 80, 90))
     def update(self, dt):
 
         if hasattr(self, 'invalid_timer'):
@@ -102,7 +93,7 @@ class HUD:
 
        
 
-        x = BOARD_W + 50
+        x = BOARD_W + 15
 
        
 
@@ -311,11 +302,11 @@ class HUD:
 
            
 
-            rect_x = BOARD_W + 50
+            rect_x = BOARD_W + 15
 
             rect_y = 516
 
-            rect_w = 200
+            rect_w = SCREEN_W - BOARD_W - 30
 
             rect_h = 32
 
