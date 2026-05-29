@@ -44,20 +44,22 @@ TOWER_STATS = {
 ENEMY_STATS = {
     # --- 일반 Enemy ---
     # 유령 일반: HP 많은 편
-    'ghost_normal': {'hp': 150, 'speed': 50, 'gold': 20, 'damage': 1, 'color': (200, 200, 200), 'is_boss': False},
+    'ghost_normal': {'hp': 150, 'speed': 50, 'gold': 20, 'damage': 1, 'color': (200, 200, 0), 'is_boss': False},
     # 로켓 일반: 이동 속도 빠른 편
-    'rocket_normal': {'hp': 60, 'speed': 100, 'gold': 30, 'damage': 1, 'color': (50, 255, 180), 'is_boss': False},
+    'rocket_normal': {'hp': 60, 'speed': 100, 'gold': 30, 'damage': 1, 'color': (200, 200, 200), 'is_boss': False},
     # 팩맨 일반: HP 조금 많고 속도 조금 빠름 (중간 느낌)
-    'pacman_normal': {'hp': 100, 'speed': 75, 'gold': 25, 'damage': 1, 'color': (200, 200, 0), 'is_boss': False},
+    'pacman_normal': {'hp': 100, 'speed': 75, 'gold': 25, 'damage': 1, 'color': (50, 255, 180), 'is_boss': False},
 
     # --- 보스 Enemy ---
     # 유령 보스: HP 매우 많음 (색상은 생성 시 덮어씌움)
-    'boss_ghost': {'hp': 600, 'speed': 45, 'gold': 150, 'damage': 5, 'color': COLOR_GHOST_RED, 'is_boss': True},
+    'boss_ghost': {'hp': 600, 'speed': 50, 'gold': 150, 'damage': 5, 'color': COLOR_GHOST_RED, 'is_boss': True},
     # 로켓 보스: 속도 매우 빠름, HP 적음, 성 공격력 셈
     'boss_rocket': {'hp': 120, 'speed': 110, 'gold': 150, 'damage': 20, 'color': (50, 50, 200), 'is_boss': True},
     # 팩맨 보스: 타워 먹는 특수 능력
     'boss_pacman': {'hp': 400, 'speed': 70, 'gold': 200, 'damage': 10, 'color': COLOR_PACMAN, 'is_boss': True},
 }
+
+GHOST_BOSS_SPEED = [52, 48, 44, 40]
 
 
 # settings.py 예시 (이런 형태로 색상을 추가해 주시면 됩니다!)

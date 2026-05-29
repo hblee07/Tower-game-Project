@@ -139,13 +139,18 @@ class GhostEnemy(BaseEnemy):
         if self.is_boss:
             # 문자열('red')이 아니라 settings의 실제 색상 변수(튜플)와 비교해야 합니다!
             if ghost_color == COLOR_GHOST_RED:
-                img = get_image('ghost_boss_red.png')       # assets/ 제거 완료
+                img = get_image('ghost_boss_red.png')  
+                self.base_speed = GHOST_BOSS_SPEED[0]
             elif ghost_color == COLOR_GHOST_PINK:
                 img = get_image('ghost_boss_pink.png')
-            elif ghost_color == COLOR_GHOST_CYAN:           # wave.py 스펙에 맞춰 blue 대신 cyan으로 변경
+                self.base_speed = GHOST_BOSS_SPEED[1]
+            elif ghost_color == COLOR_GHOST_CYAN:  
                 img = get_image('ghost_boss_cyan.png')
+                self.base_speed = GHOST_BOSS_SPEED[2]
             else:
                 img = get_image('ghost_boss_orange.png')
+                self.base_speed = GHOST_BOSS_SPEED[3]
+            self.speed = self.base_speed
 
             # 가져온 이미지를 CELL_SIZE(20x20) 크기로 강제 셋팅!
             self.image = pygame.transform.scale(img, (CELL_SIZE, CELL_SIZE))
