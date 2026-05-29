@@ -1,7 +1,7 @@
 {
-  "stage_id": 2,
-  "gold": 1000,
-  "hp": 30,
+  "stage_id": 1,
+  "gold": 1015,
+  "hp": 19,
   "wave": {
     "current_wave": 3,
     "all_clear": false
@@ -10,7 +10,7 @@
     {
       "type": "bomb",
       "grid_pos": [
-        9,
+        4,
         9
       ],
       "merge_level": 1,
@@ -19,17 +19,26 @@
     {
       "type": "bomb",
       "grid_pos": [
-        7,
-        7
+        3,
+        10
       ],
       "merge_level": 1,
       "upgrade_level": 0
     },
     {
-      "type": "thorn",
+      "type": "bomb",
+      "grid_pos": [
+        4,
+        12
+      ],
+      "merge_level": 1,
+      "upgrade_level": 0
+    },
+    {
+      "type": "lightning",
       "grid_pos": [
         16,
-        10
+        11
       ],
       "merge_level": 1,
       "upgrade_level": 0
@@ -44,64 +53,28 @@
       "upgrade_level": 0
     },
     {
-      "type": "thorn",
-      "grid_pos": [
-        4,
-        9
-      ],
-      "merge_level": 1,
-      "upgrade_level": 0
-    },
-    {
-      "type": "lightning",
-      "grid_pos": [
-        16,
-        13
-      ],
-      "merge_level": 2,
-      "upgrade_level": 0
-    },
-    {
-      "type": "thorn",
-      "grid_pos": [
-        22,
-        24
-      ],
-      "merge_level": 1,
-      "upgrade_level": 0
-    },
-    {
       "type": "bomb",
-      "grid_pos": [
-        24,
-        26
-      ],
-      "merge_level": 1,
-      "upgrade_level": 3
-    },
-    {
-      "type": "bomb",
-      "grid_pos": [
-        2,
-        11
-      ],
-      "merge_level": 1,
-      "upgrade_level": 3
-    },
-    {
-      "type": "random",
       "grid_pos": [
         24,
         25
       ],
-      "merge_level": 2,
-      "upgrade_level": 0
+      "merge_level": 1,
+      "upgrade_level": 3
     },
     {
-      "type": "thorn",
+      "type": "bomb",
       "grid_pos": [
-        27,
-        22
+        23,
+        25
+      ],
+      "merge_level": 1,
+      "upgrade_level": 3
+    },
+    {
+      "type": "bomb",
+      "grid_pos": [
+        17,
+        15
       ],
       "merge_level": 1,
       "upgrade_level": 0
@@ -109,8 +82,8 @@
     {
       "type": "thorn",
       "grid_pos": [
-        26,
-        28
+        14,
+        9
       ],
       "merge_level": 1,
       "upgrade_level": 0
