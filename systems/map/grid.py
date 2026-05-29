@@ -77,9 +77,9 @@ class Grid:
                 cell = self.cells[r][c]
                 
                 # --- [1. 특수 타일 및 장판 처리] ---
-                if self.is_thorn(c, r):
-                    pygame.draw.rect(surface, (45, 85, 35), rect)
-                    continue
+                #if self.is_thorn(c, r):
+                    #pygame.draw.rect(surface, (45, 85, 35), rect)
+                    #continue
                 if cell == START: 
                     pygame.draw.rect(surface, (230, 50, 50), rect, width=2, border_radius=4)
                     continue
@@ -149,8 +149,9 @@ class Grid:
                     #pygame.draw.rect(surface, GRID_GUIDE_COLOR, rect, width=1)
                     center_x, center_y = x + CELL_SIZE // 2, y + CELL_SIZE // 2
                     pygame.draw.circle(surface, GRID_GUIDE_COLOR, (center_x, center_y), 5)
-        
-        
+                    if self.is_thorn(c, r):
+                        pygame.draw.circle(surface, (50,200,80), (center_x, center_y), 5)
+                    
         
         
         if hasattr(self, 'path') and len(self.path) > 1:

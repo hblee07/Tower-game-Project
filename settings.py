@@ -54,7 +54,7 @@ ENEMY_STATS = {
     # 유령 보스: HP 매우 많음 (색상은 생성 시 덮어씌움)
     'boss_ghost': {'hp': 600, 'speed': 45, 'gold': 150, 'damage': 5, 'color': COLOR_GHOST_RED, 'is_boss': True},
     # 로켓 보스: 속도 매우 빠름, HP 적음, 성 공격력 셈
-    'boss_rocket': {'hp': 120, 'speed': 110, 'gold': 150, 'damage': 25, 'color': (50, 50, 200), 'is_boss': True},
+    'boss_rocket': {'hp': 120, 'speed': 110, 'gold': 150, 'damage': 20, 'color': (50, 50, 200), 'is_boss': True},
     # 팩맨 보스: 타워 먹는 특수 능력
     'boss_pacman': {'hp': 400, 'speed': 70, 'gold': 200, 'damage': 10, 'color': COLOR_PACMAN, 'is_boss': True},
 }
@@ -69,7 +69,7 @@ STAGE_THEMES = {
         'grid': (20, 20, 30), 'path': (255, 255, 255) # 기존 변수 유지용
     },
     2: {
-        'bg': (15, 5, 5),           # 🥈 2스테이지: 불타는 사막 테마 배경
+        'bg': (10, 5, 5),           # 🥈 2스테이지: 불타는 사막 테마 배경
         'neon_line': (255, 50, 50),  # 네온 레드 선
         'neon_close': (40, 15, 15),
         'grid': (30, 20, 20), 'path': (255, 255, 255)

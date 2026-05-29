@@ -101,7 +101,7 @@ class WaveManager:
         self.queue = []
         # 데이터 리스트(WAVES)의 인덱스는 0부터 시작하므로 -1을 해주는 규칙은 그대로 유지합니다.
         for kind, count in WAVES[self.current_wave - 1]: 
-            self.queue += [kind] * count
+            self.queue += [(kind,None)] * count
             
         self.scale = scale
         self.active = True
