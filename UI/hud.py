@@ -24,8 +24,9 @@ class HUDButton:
 class HUD:
     def __init__(self):
         
-        self.font = pygame.font.SysFont(None, 22)      
-        self.small = pygame.font.SysFont(None, 18)    
+        self.font = pygame.font.SysFont(None, 22)
+        self.smallsmall = pygame.font.SysFont(None, 14)     
+        self.small = pygame.font.SysFont(None, 18) 
         self.big = pygame.font.SysFont(None, 25, bold=True)
         self.invalid_timer = 0
         self.message = ''
@@ -114,13 +115,13 @@ class HUD:
            
             is_selected = hasattr(game, 'selected_build') and game.selected_build == tower_type
             b.draw(surface, self.small, enabled=can_afford, selected=is_selected)
-        self.draw_text(surface, "L-Click: place/select | ESC: cancel | SPACE: use skill", x, 216, self.small, (170, 170, 170))
-        self.draw_text(surface, "P: pause | M: merge (same type & Lv)", x, 232, self.small, (170, 170, 170))
+        self.draw_text(surface, "L-Click: place/select | ESC: cancel | SPACE: use skill", x, 216, self.smallsmall, (170, 170, 170))
+        self.draw_text(surface, "P: pause | M: merge (same type & Lv)", x, 232, self.smallsmall, (170, 170, 170))
         self.draw_text(surface, "Selected Tower", x, 260, self.big, (255, 235, 130))
         t = game.selected_tower
         if t:
             self.draw_text(surface, f"{TOWER_STATS[t.tower_type]['name']} Lv.{t.merge_level} (+{t.upgrade_level})", x, 284, self.font)
-            self.draw_text(surface, f"Dmg: {int(t.damage)} | Range: {t.attack_range:.1f}", x, 304, self.small, (200, 200, 210))
+            self.draw_text(surface, f"Dmg: {int(t.damage)} (-> {int(t.damage*1.05)}) | Range: {t.attack_range:.1f}", x, 304, self.small, (200, 200, 210))
         
             cost = t.upgrade_cost()
             cost_text = f"Upgrade cost: {cost}G" if t.upgrade_level < MAX_UPGRADE_LEVEL else "Upgrade cost: MAX"
@@ -179,7 +180,7 @@ class HUD:
             pygame.draw.rect(surface, (255, 255, 255), alert_rect, border_radius=4)
             pygame.draw.rect(surface, (200, 200, 200), alert_rect, 1, border_radius=4)
 
-            img = self.font.render(str(self.message), True, msg_color)
+            img = self.small.render(str(self.message), True, msg_color)
             text_rect = img.get_rect(center=alert_rect.center)
             surface.blit(img, text_rect)
 

@@ -1,7 +1,7 @@
 import pygame, math
 from settings import *
 
-# 이미지 캐싱 (매번 로드하는 것을 방지)
+
 _IMAGE_CACHE = {}
 
 def get_image(path):
@@ -11,15 +11,14 @@ def get_image(path):
             full_path = f"assets/{path}"
             _IMAGE_CACHE[path] = pygame.image.load(full_path).convert_alpha()
         except pygame.error:
-            # 이미지 없을 경우 임시 사각형 반환
+
             surf = pygame.Surface((CELL_SIZE, CELL_SIZE), pygame.SRCALPHA)
             pygame.draw.rect(surf, (255, 0, 255), (0, 0, CELL_SIZE, CELL_SIZE))
             _IMAGE_CACHE[path] = surf
     return _IMAGE_CACHE[path]
 
-# ==========================================
-# 1. Base Enemy (부모 클래스)
-# ==========================================
+
+#enemy의 베이스클래스
 class BaseEnemy:
     def __init__(self, kind, path, wave_scale=1.0):
         s = ENEMY_STATS.get(kind, ENEMY_STATS['ghost_normal'])
@@ -43,7 +42,7 @@ class BaseEnemy:
         self.slow_timer = 0
         self.slow_factor = 1
         self.stun_timer = 0
-        self.current_angle = 0 # 이동 방향 (회전용)
+        self.current_angle = 0
 
     def _center(self, cell): 
         return (cell[0]*CELL_SIZE+CELL_SIZE/2, cell[1]*CELL_SIZE+CELL_SIZE/2)

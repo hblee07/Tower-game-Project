@@ -10,6 +10,7 @@ from systems.audio import AudioManager
 from models.tower import BombTower, LightningTower, ThornTower, RandomTower, Tower
 from UI.hud import HUD
 from UI.screens import PauseOverlay
+from assets.space_background import PW, PH, draw_scene, apply_twinkle
 
 class SceneManager:
     def __init__(self, screen, save_manager): 
@@ -59,58 +60,120 @@ class BaseScene:
         pass
 
 class TitleScene(BaseScene):
-    def __init__(self,manager):
+    def __init__(self, manager):
         super().__init__(manager)
+
         self.manager.audio.play_bgm('Title_Screen')
-        self.font=pygame.font.SysFont(None,56)
-        self.small=pygame.font.SysFont(None,28)
-        cx=SCREEN_W//2
-        
-        self.buttons=[('Stage 1',pygame.Rect(cx-120,160,240,40),'stage1'),
-                      ('Stage 2',pygame.Rect(cx-120,210,240,40),'stage2'),
-                      ('Stage 3',pygame.Rect(cx-120,260,240,40),'stage3'), 
-                      ('Continue',pygame.Rect(cx-120,310,240,40),'continue'),
-                      ('Ranking',pygame.Rect(cx-120,360,240,40),'ranking'),
-                      ('Quit',pygame.Rect(cx-120,410,240,40),'quit')]
-                      
-    def handle_event(self,event):
-        if event.type==pygame.MOUSEBUTTONDOWN and event.button==1:
-            for _,rect,act in self.buttons:
+
+        self.font = pygame.font.SysFont(None, 56)
+        self.small = pygame.font.SysFont(None, 28)
+
+        # 픽셀 우주 배경용 Surface
+        self.bg_pixel = pygame.Surface((PW, PH))
+        draw_scene(self.bg_pixel)
+
+        self.bg = pygame.transform.scale(self.bg_pixel, (SCREEN_W, SCREEN_H))
+
+        self.twinkle_timer = 0
+        self.twinkle_interval = 20
+
+        cx = SCREEN_W // 2
+
+        self.buttons = [
+            ('Stage 1', pygame.Rect(cx-120,160,240,40), 'stage1'),
+            ('Stage 2', pygame.Rect(cx-120,210,240,40), 'stage2'),
+            ('Stage 3', pygame.Rect(cx-120,260,240,40), 'stage3'),
+            ('Continue', pygame.Rect(cx-120,310,240,40), 'continue'),
+            ('Ranking', pygame.Rect(cx-120,360,240,40), 'ranking'),
+            ('Quit', pygame.Rect(cx-120,410,240,40), 'quit')
+        ]
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            for _, rect, act in self.buttons:
                 if rect.collidepoint(event.pos):
-                    # 🔓 [클릭 제한 해제] 잠금 검사 없이 누르는 대로 즉시 해당 스테이지로 진입합니다.
                     if act == 'stage1':
-                        self.manager.replace('game',stage_id=1)
+                        self.manager.replace('game', stage_id=1)
                     elif act == 'stage2':
-                        self.manager.replace('game',stage_id=2)
-                    elif act == 'stage3': 
-                        self.manager.replace('game',stage_id=3)
-                    elif act=='continue':
-                        data=self.manager.save_manager.load()
-                        if data: 
-                            self.manager.replace('game',stage_id=data.get('stage_id',1),save_data=data)
-                    elif act=='ranking': 
+                        self.manager.replace('game', stage_id=2)
+                    elif act == 'stage3':
+                        self.manager.replace('game', stage_id=3)
+                    elif act == 'continue':
+                        data = self.manager.save_manager.load()
+                        if data:
+                            self.manager.replace(
+                                'game',
+                                stage_id=data.get('stage_id', 1),
+                                save_data=data
+                            )
+                    elif act == 'ranking':
                         self.manager.replace('ranking')
-                    elif act=='quit': 
+                    elif act == 'quit':
                         pygame.event.post(pygame.event.Event(pygame.QUIT))
-                        
-    def draw(self,surface):
-        surface.fill((20,24,34))
-        title=self.font.render('Tower Defense Game',True,(0,200,255))
-        surface.blit(title,title.get_rect(center=(SCREEN_W//2,90)))
-        soundtracks_text = self.small.render('soundtracks from geometry dash', True, (100,100,100))
+
+    def update_background(self):
+        self.twinkle_timer += 1
+
+        if self.twinkle_timer >= self.twinkle_interval:
+            self.twinkle_timer = 0
+
+            # 원래 배경을 다시 그리고
+            draw_scene(self.bg_pixel)
+
+            # 그 위에 반짝임 적용
+            apply_twinkle(self.bg_pixel)
+
+            # 실제 화면 크기로 확대
+            self.bg = pygame.transform.scale(
+                self.bg_pixel,
+                (SCREEN_W, SCREEN_H)
+            )
+
+    def draw(self, surface):
+        self.update_background()
+
+        # 배경 먼저 그림
+        surface.blit(self.bg, (0, 0))
+
+        title = self.font.render(
+            'Tower Defense Game',
+            True,
+            (255, 220, 230)
+        )
+        surface.blit(title, title.get_rect(center=(SCREEN_W//2, 90)))
+
+        soundtracks_text = self.small.render(
+            'soundtracks from geometry dash',
+            True,
+            (100, 100, 100)
+        )
         surface.blit(soundtracks_text, (5, SCREEN_H-30))
-        for text,rect,act in self.buttons:
-            # 🔓 [UI 상시 활성화] 모든 버튼이 항상 활성화된 밝은 스타일로 그려집니다.
+
+        for text, rect, act in self.buttons:
             enabled = True
-            if act == 'continue': enabled = self.manager.save_manager.has_save()
-            
-            # 모든 스테이지 버튼은 항상 활성화 색상(70, 82, 96)으로 통일됩니다.
-            pygame.draw.rect(surface,(70,82,96) if enabled else (40,42,48),rect,border_radius=8)
-            pygame.draw.rect(surface,(185,190,200) if enabled else (90,95,100),rect,2,border_radius=8)
-            
-            # 더 이상 (Locked) 문구를 붙이지 않고 정직하게 스테이지 이름만 띄웁니다.
-            img=self.small.render(text, True, COLOR_TEXT if enabled else (100,100,100))
-            surface.blit(img,img.get_rect(center=rect.center))
+            if act == 'continue':
+                enabled = self.manager.save_manager.has_save()
+
+            pygame.draw.rect(
+                surface,
+                (30,42,56) if enabled else (0,12,8),
+                rect,
+                border_radius=8
+            )
+            pygame.draw.rect(
+                surface,
+                (255,220,230) if enabled else (205,170,180),
+                rect,
+                2,
+                border_radius=8
+            )
+
+            img = self.small.render(
+                text,
+                True,
+                (255,220,230) if enabled else (205,170,180)
+            )
+            surface.blit(img, img.get_rect(center=rect.center))
 
 class GameScene(BaseScene):
     def __init__(self, manager, stage_id, save_data=None):
@@ -160,14 +223,11 @@ class GameScene(BaseScene):
                 self.wave_manager.start_next_wave(self.grid.path, self.effect_manager)
                 self.make_checkpoint()
     def recalc_path(self): 
-        # 1. 기존 경로를 변수에 백업해둡니다.
         old_path = self.grid.path
         
-        # 2. 새로운 최단 경로를 계산해서 적용합니다.
         new_path = self.pathfinder.find_path(self.grid)
         self.grid.path = new_path
         
-        # 3. ★ [핵심] 기존 경로와 새 경로가 '실제로 다를 때만' 적들에게 통보합니다.
         if old_path != new_path:
             if hasattr(self, 'enemies'):
                 for e in self.enemies: 
@@ -279,13 +339,10 @@ class GameScene(BaseScene):
         tower = cls((c, r))
         self.towers.append(tower)
         
-        # 1. 기존 경로 백업
         old_path = self.grid.path
         
-        # 2. 새 경로 적용
         self.grid.path = new_path
 
-        # 3. ★ 실제로 경로가 변경되었을 때만 적들의 위치를 보정합니다.
         if old_path != new_path:
             for e in self.enemies: 
                 e.set_path(new_path)

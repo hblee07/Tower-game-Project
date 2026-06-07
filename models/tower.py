@@ -90,9 +90,9 @@ class Tower(metaclass=ABCMeta):
         # 1. 기존 타워 본체 및 레벨 텍스트 그리기
         self._draw_body(surface, px, py)
         font = pygame.font.SysFont(None, 14)
-        surface.blit(font.render(str(self.merge_level), True, (255, 255, 255)), (px + CELL_SIZE - 10, py + 1))
+        surface.blit(font.render(str(self.merge_level), True, (255, 255, 255)), (px + CELL_SIZE - 18, py + 1))
         if self.upgrade_level: 
-            surface.blit(font.render('+' + str(self.upgrade_level), True, (255, 240, 80)), (px + 1, py + 1))
+            surface.blit(font.render('+' + str(self.upgrade_level), True, (255, 240, 80)), (px + CELL_SIZE -10, py + 1))
 
         # 💡 2. [추가] 타워 머리 위에 스킬 게이지 바 그리기
         # 현재 스킬 충전 비율 (0.0 ~ 1.0)
