@@ -1,4 +1,4 @@
-# Tower Defense
+# Tower Defense Game Rule
 
 # 게임 구성
 - Stage 3개로 구성. 이전 스테이지 먼저 깨야하는 조건 X
