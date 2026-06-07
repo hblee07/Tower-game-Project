@@ -36,7 +36,6 @@ class Tower(metaclass=ABCMeta):
     
     def _find_target(self, enemies):
         in_range = [e for e in enemies if e.alive and self._distance_to(e) <= self.attack_range * CELL_SIZE]
-        # 💡 수정: path_progress 대신 path_index 기준으로 가장 멀리 간 적 탐색
         return max(in_range, key=lambda e: e.path_index, default=None)
     
     def _distance_to(self,e):
@@ -87,37 +86,30 @@ class Tower(metaclass=ABCMeta):
         px = self.grid_pos[0] * CELL_SIZE
         py = self.grid_pos[1] * CELL_SIZE
         
-        # 1. 기존 타워 본체 및 레벨 텍스트 그리기
         self._draw_body(surface, px, py)
         font = pygame.font.SysFont(None, 14)
         surface.blit(font.render(str(self.merge_level), True, (255, 255, 255)), (px + CELL_SIZE - 18, py + 1))
         if self.upgrade_level: 
             surface.blit(font.render('+' + str(self.upgrade_level), True, (255, 240, 80)), (px + CELL_SIZE -10, py + 1))
 
-        # 💡 2. [추가] 타워 머리 위에 스킬 게이지 바 그리기
-        # 현재 스킬 충전 비율 (0.0 ~ 1.0)
         ratio = self.skill_cooldown_ratio()
         
-        # 조건에 따른 게이지 바 색상 결정 (100%, 70%이상, 20%이상, 그 미만)
         if ratio >= 1.0:
-            bar_color = (50, 150, 255)   # 파란색 (100%)
+            bar_color = (50, 150, 255)
         elif ratio >= 0.7:
-            bar_color = (70, 220, 80)    # 초록색 (70% 이상)
+            bar_color = (70, 220, 80)
         elif ratio >= 0.2:
-            bar_color = (250, 210, 60)   # 노란색 (20% 이상)
+            bar_color = (250, 210, 60)
         else:
-            bar_color = (235, 60, 60)    # 빨간색 (20% 미만)
+            bar_color = (235, 60, 60)
 
-        # 게이지 바 위치 및 크기 설정 (타워 바로 위 배치)
-        bar_width = CELL_SIZE - 6       # 타워 너비에 맞춰 여백을 둔 크기
-        bar_height = 4                  # 바 두께
-        bar_x = px + 3                  # 가로 중앙 정렬을 위한 여백
-        bar_y = py - 7                  # 타워 바디보다 7픽셀 위에 그리기
+        bar_width = CELL_SIZE - 6
+        bar_height = 4
+        bar_x = px + 3
+        bar_y = py - 7
 
-        # 배경 바 (어두운 회색 뒷배경)
         pygame.draw.rect(surface, (40, 40, 40), (bar_x, bar_y, bar_width, bar_height))
         
-        # 현재 게이지 비율만큼 채워지는 전경 바
         fill_width = int(bar_width * ratio)
         if fill_width > 0:
             pygame.draw.rect(surface, bar_color, (bar_x, bar_y, fill_width, bar_height))
@@ -137,12 +129,11 @@ class Tower(metaclass=ABCMeta):
     def from_dict(data):
         return {'bomb':BombTower,'lightning':LightningTower,'thorn':ThornTower,'random':RandomTower}[data['type']](tuple(data['grid_pos']),data['merge_level'],data.get('upgrade_level',0))
 
-# 투사체(Projectile)가 목표물의 좌표(pixel_pos)를 정상적으로 읽을 수 있도록 돕는 더미 클래스
 class DummyTarget:
     def __init__(self, pos):
         self.pixel_pos = pos
         self.alive = True
-        self.path_index = 0 # 💡 수정: path_progress를 path_index로 변경
+        self.path_index = 0 
 
 class BombTower(Tower):
     def __init__(self, grid_pos, merge_level=1, upgrade_level=0): 
@@ -155,19 +146,14 @@ class BombTower(Tower):
     def _fire(self, target):
         from models.projectile import BombProjectile
         
-        # 1. 타워 중심 좌표 계산
         cx = self.grid_pos[0] * CELL_SIZE + CELL_SIZE // 2
         cy = self.grid_pos[1] * CELL_SIZE + CELL_SIZE // 2
         
-        # 2. 공격 범위(attack_range) 내의 랜덤한 각도와 거리 산출
         angle = random.uniform(0, 2 * math.pi)
         dist = random.uniform(0, self.attack_range * CELL_SIZE)
         
         random_px = cx + math.cos(angle) * dist
         random_py = cy + math.sin(angle) * dist
-        
-        # 3. 가짜 타겟(DummyTarget) 생성 후 랜덤 좌표 부여
-        # 적의 위치가 아닌 범위 내 엉뚱한(랜덤) 곳으로 폭탄을 던집니다.
         dummy_target = DummyTarget((random_px, random_py))
         
         return [BombProjectile(self.grid_pos, dummy_target, self.damage, self.bomb_radius, self)]
@@ -178,28 +164,25 @@ class BombTower(Tower):
             
         from models.effect import ExplosionEffect
         
-        # 1. 타워 중심 좌표
         my_cx = self.grid_pos[0] * CELL_SIZE + CELL_SIZE // 2
         my_cy = self.grid_pos[1] * CELL_SIZE + CELL_SIZE // 2
         
-        # 2. 공격 범위 내에 존재하는 적의 이동 경로(path)만 필터링
         valid_path_cells = []
         for cell in grid.path:
             cell_cx, cell_cy = grid.grid_to_pixel_center(*cell)
             if math.hypot(cell_cx - my_cx, cell_cy - my_cy) <= self.attack_range * CELL_SIZE:
                 valid_path_cells.append(cell)
-        
-        # 만약 사거리 내에 경로가 하나도 없다면 스킬 발동을 취소 (쿨타임 보존)
+
         if not valid_path_cells:
             return False
             
-        # 3. 사거리 내 경로 중 랜덤한 한 칸을 지정하여 초거대 폭탄 투하
+        
         target_cell = random.choice(valid_path_cells)
         cx, cy = grid.grid_to_pixel_center(*target_cell)
         
-        # 초거대 폭탄 스펙 (기본 반경의 5배, 데미지 10배 - 밸런스에 맞게 조절 가능)
+        
         massive_radius = self.bomb_radius * 5.0
-        massive_damage = self.damage * 10
+        massive_damage = self.damage * 7
         
         for e in enemies:
             if e.alive and math.hypot(e.pixel_pos[0] - cx, e.pixel_pos[1] - cy) <= massive_radius: 
@@ -235,7 +218,6 @@ class LightningTower(Tower):
 
 class ThornTower(Tower):
     def __init__(self, grid_pos, merge_level=1, upgrade_level=0): 
-        # 부모 생성자를 호출하면서 settings.py의 공속(1.5 등)을 정상적으로 주입받습니다.
         super().__init__('thorn', grid_pos, merge_level, upgrade_level)
         self.slow_factor = TOWER_STATS['thorn']['slow_factor'][merge_level-1]
 
@@ -244,11 +226,7 @@ class ThornTower(Tower):
         pygame.draw.line(s, (210, 255, 120), (px + 4, py + 16), (px + 16, py + 4), 2)
 
     def _fire(self, target): 
-        # 순환 참조 방지 내부 임포트
         from models.projectile import ThornProjectile
-        
-        # 🎯 발사할 때 즉시 데미지를 주지 않고, 투사체 오브젝트만 담아서 보냅니다.
-        # slow_factor 정보도 투사체에 함께 넘겨주어 명중 시점에 슬로우가 걸리도록 만듭니다.
         return [ThornProjectile(self.grid_pos, target, self.damage, self.slow_factor, self)]
     
     def use_skill(self, enemies, grid):
@@ -257,10 +235,6 @@ class ThornTower(Tower):
         grid.activate_thorn_overlay(self.grid_pos, self.attack_range, 5.0)
         self.skill_gauge = 0
         return True
-        
-        # 💥 [궁극기] 기존에 짜두신 가시밭길 오버레이 활성화 기능을 그대로 수행합니다.
-        # 이전에 해결한 Enemy 소수점 데미지 패치 덕분에 이제 이 가시밭길 위에서 몬스터 피가 정상적으로 깎입니다!
-
 class RandomTower(Tower):
     def __init__(self,grid_pos,merge_level=1,upgrade_level=0): 
         super().__init__('random',grid_pos,merge_level,upgrade_level)

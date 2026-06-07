@@ -34,6 +34,8 @@ WAVES = [
     [('rocket_normal',10),('boss_ghost_sequence', 1), ('boss_pacman', 1)],
 ]
 
+GHOST_BOSS_COLORS = [COLOR_GHOST_RED, COLOR_GHOST_PINK, COLOR_GHOST_CYAN, COLOR_GHOST_ORANGE]
+
 TOWER_STATS = {
     'bomb': {'name':'Bomb','cost':[110,170,260],'damage':[360,580,950],'attack_range':[4.3, 4.3, 4.3],
              'attack_speed':[1.7, 1.9, 2.5],'skill_cooldown':5000,'sell_ratio':0.3,'upgrade_base':15},

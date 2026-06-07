@@ -68,7 +68,6 @@ class TitleScene(BaseScene):
         self.font = pygame.font.SysFont(None, 56)
         self.small = pygame.font.SysFont(None, 28)
 
-        # 픽셀 우주 배경용 Surface
         self.bg_pixel = pygame.Surface((PW, PH))
         draw_scene(self.bg_pixel)
 
@@ -117,13 +116,10 @@ class TitleScene(BaseScene):
         if self.twinkle_timer >= self.twinkle_interval:
             self.twinkle_timer = 0
 
-            # 원래 배경을 다시 그리고
             draw_scene(self.bg_pixel)
 
-            # 그 위에 반짝임 적용
             apply_twinkle(self.bg_pixel)
 
-            # 실제 화면 크기로 확대
             self.bg = pygame.transform.scale(
                 self.bg_pixel,
                 (SCREEN_W, SCREEN_H)
@@ -132,7 +128,6 @@ class TitleScene(BaseScene):
     def draw(self, surface):
         self.update_background()
 
-        # 배경 먼저 그림
         surface.blit(self.bg, (0, 0))
 
         title = self.font.render(
@@ -462,14 +457,12 @@ class GameScene(BaseScene):
             if self.grid.is_thorn(c, r): 
                 e.take_damage(10 * dt)
                 e.apply_slow(0.45, 0.2)
-
-            # 💡 추가: 팩맨 보스가 죽음 상태(is_dying)가 되면 타워 탐색 후 데스 이펙트 시작
             if getattr(e, 'is_dying', False) and e.target_tower is None:
                 closest_tower = self._find_closest_tower(e)
                 if closest_tower:
                     e.start_death_effect(closest_tower)
                 else:
-                    e.alive = False # 주변에 남은 타워가 없으면 즉시 소멸
+                    e.alive = False
 
             e.move(dt)
             if e.reached_end: 
@@ -494,15 +487,14 @@ class GameScene(BaseScene):
         self.enemies = [e for e in self.enemies if e.alive and not e.reached_end]
         self.projectiles = [p for p in self.projectiles if p.alive]
         
-        # 💡 추가: 팩맨 보스에게 먹혀서 파괴된 타워 맵에서 제거
         dead_towers = [t for t in self.towers if not getattr(t, 'alive', True)]
         if dead_towers:
             for t in dead_towers:
                 self.towers.remove(t)
                 self.grid.remove_tower(*t.grid_pos)
                 if self.selected_tower == t:
-                    self.selected_tower = None # 선택 중이던 타워가 먹혔을 때 예외 처리
-            self.recalc_path() # 타워가 없어졌으므로 길 다시 찾기
+                    self.selected_tower = None 
+            self.recalc_path()
 
         old_wave=self.wave_manager.current_wave
 
@@ -520,9 +512,6 @@ class GameScene(BaseScene):
 
     def end(self, result):
         score = self.score_system.calc_score(self.wave_manager.current_wave, self.castle_hp.hp, self.economy.gold)
-        
-        # 💡 [구조 유지] 내부 해금 로직 딕셔너리 업데이트 연동은 남겨두어 에러를 방지하되, 
-        # 이미 모두 열려있기 때문에 게임 플레이 및 잠금 유무에 전혀 영향을 주지 않습니다.
         if result == 'win':
             next_stage = self.stage_id + 1
             if next_stage in self.manager.unlocked_stages_dict:
@@ -557,7 +546,6 @@ class GameScene(BaseScene):
         if self.paused: 
             self.pause_overlay.draw(surface)
 
-    # 💡 추가: 팩맨 보스가 자폭할 때 사용할 근처 타워 탐색 함수
     def _find_closest_tower(self, enemy):
         alive_towers = [t for t in self.towers if getattr(t, 'alive', True)]
         if not alive_towers:
@@ -604,12 +592,9 @@ class RankingScene(BaseScene):
         self.font = pygame.font.SysFont(None, 48)  
         self.small = pygame.font.SysFont(None, 24) 
         
-        # 🔄 현재 보고 있는 스테이지 상태 변수 (1 ~ 3)
         self.current_stage = 1
         self.max_stages = 3
         
-        # 📐 화살표 버튼 클릭 영역 (Rect) 생성
-        # Y좌표 50 주변에서 가로세로 40 크기로 클릭 범위가 넉넉하도록 설정
         self.left_btn = pygame.Rect(SCREEN_W // 2 - 200, 48, 40, 40)
         self.right_btn = pygame.Rect(SCREEN_W // 2 + 160, 48, 40, 40)
 
@@ -617,32 +602,27 @@ class RankingScene(BaseScene):
         if event.type == pygame.QUIT:
             return
             
-        # 1. 마우스 클릭 처리
         if event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 1:  # 마우스 좌클릭
-                # 왼쪽 화살표 박스를 눌렀을 때
+            if event.button == 1:
                 if self.left_btn.collidepoint(event.pos):
                     self.current_stage -= 1
                     if self.current_stage < 1: 
                         self.current_stage = self.max_stages
-                    return  # 💡 중요: 스테이지 전환 성공 시 이벤트 종료 (타이틀 이동 방지)
+                    return
                     
-                # 오른쪽 화살표 박스를 눌렀을 때
                 elif self.right_btn.collidepoint(event.pos):
                     self.current_stage = (self.current_stage % self.max_stages) + 1
-                    return  # 💡 중요: 스테이지 전환 성공 시 이벤트 종료
+                    return
                 
-                # 화살표 영역 외의 '화면 위/아래 여백'을 누르면 타이틀 화면으로 돌아갑니다.
                 elif event.pos[1] < 120 or event.pos[1] > 500:
                     self.manager.replace('title')
                     
-        # 2. 키보드 입력 처리
         elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:  # ESC 누르면 타이틀로
+            if event.key == pygame.K_ESCAPE:
                 self.manager.replace('title')
-            elif event.key == pygame.K_RIGHT:  # 오른쪽 방향키 ➔ 다음 스테이지
+            elif event.key == pygame.K_RIGHT:
                 self.current_stage = (self.current_stage % self.max_stages) + 1
-            elif event.key == pygame.K_LEFT:   # 왼쪽 방향키 ➔ 이전 스테이지
+            elif event.key == pygame.K_LEFT:
                 self.current_stage -= 1
                 if self.current_stage < 1: 
                     self.current_stage = self.max_stages
@@ -650,33 +630,27 @@ class RankingScene(BaseScene):
     def draw(self, surface):
         surface.fill((18, 22, 32))
         
-        # 🏷️ 상단 타이틀 텍스트
         title_text = f'Stage {self.current_stage} Ranking'
         title = self.font.render(title_text, True, (255, 235, 130))
         surface.blit(title, title.get_rect(center=(SCREEN_W // 2, 66)))
-        
-        # 📐 [왼쪽 화살표 '◀' 그리기]
+
         pygame.draw.polygon(surface, (200, 200, 200), [
             (self.left_btn.right, self.left_btn.top + 5),
             (self.left_btn.right, self.left_btn.bottom - 5),
             (self.left_btn.left + 10, self.left_btn.centery)
         ])
-        
-        # 📐 [오른쪽 화살표 '▶' 그리기]
+
         pygame.draw.polygon(surface, (200, 200, 200), [
             (self.right_btn.left, self.right_btn.top + 5),
             (self.right_btn.left, self.right_btn.bottom - 5),
             (self.right_btn.right - 10, self.right_btn.centery)
         ])
-        
-        # 🔄 현재 선택된 스테이지의 랭킹 데이터를 로드
+
         ranks = self.manager.save_manager.load_rankings(self.current_stage)
-        
-        # 데이터 유효성 검증
+
         if not isinstance(ranks, list) or not ranks: 
             ranks = [{'name': 'No records', 'score': 0}]
-            
-        # 랭킹 리스트 출력 (최대 20개)
+
         for i, r in enumerate(ranks[:20], 1):
             text_str = f"{i:>2}. {r['name']:<12} {r['score']:,}"
             
@@ -690,16 +664,14 @@ class RankingScene(BaseScene):
                 text_color = COLOR_TEXT
 
             img = self.small.render(text_str, True, text_color)
-            
-            # 2열 배치 좌표 계산
+
             if i <= 10:
                 start_x = SCREEN_W // 2 - 240
                 start_y = 140 + (i - 1) * 36 
             else:
                 start_x = SCREEN_W // 2 + 20
                 start_y = 140 + (i - 11) * 36 
-                
-            # 🏅 1, 2, 3등 배경 박스 그리기
+
             if r['score'] > 0:
                 rect_bg = pygame.Rect(start_x - 10, start_y - 4, 220, 28)
                 if i == 1:
@@ -710,7 +682,6 @@ class RankingScene(BaseScene):
                     pygame.draw.rect(surface, (205, 130, 90), rect_bg, border_radius=4)
             
             surface.blit(img, (start_x, start_y))
-            
-        # 하단 안내 메시지
+
         msg = self.small.render('<- / -> : Change Stage  |  ESC or Click Top/Bottom : Return', True, (150, 150, 160))
         surface.blit(msg, msg.get_rect(center=(SCREEN_W // 2, 540)))

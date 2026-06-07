@@ -9,7 +9,7 @@ class BasicProjectile:
         self.speed=speed
         self.alive=True
         self.color=(230,230,90)
-        self.owner_tower = owner_tower # 부모 클래스에도 owner_tower 기본값 추가
+        self.owner_tower = owner_tower
 
     def update(self, dt):
         if not self.target.alive: 
@@ -20,10 +20,7 @@ class BasicProjectile:
         dy=ty-self.y
         dist=math.hypot(dx,dy)
         if dist < max(6,self.speed*dt): 
-            # 🎯 [Hit 시점] 단일 적 명중
             self.target.take_damage(self.damage)
-            
-            # 주인 타워가 있다면 게이지 상승
             if self.owner_tower:
                 self.owner_tower.add_skill_gauge(self.damage)
                 
@@ -35,18 +32,16 @@ class BasicProjectile:
 
 class BombProjectile(BasicProjectile):
     def __init__(self, start_grid, target, damage, radius, owner_tower): 
-        # 부모 생성자에 owner_tower를 전달하도록 수정 (마지막 인자)
         super().__init__(start_grid, target, damage, 220, owner_tower)
         self.radius = radius
         self.enemies = []
         self.color = (255, 120, 40)
         
-        # 상태 제어를 위한 변수들 추가
-        self.state = 'moving'         # 현재 상태: 'moving', 'waiting', 'exploding'
-        self.wait_timer = 0.2         # 목표 도달 후 머무는 시간 (0.2초)
-        self.explode_duration = 0.2   # 폭발 이펙트가 퍼지는 시간
-        self.explode_timer = 0        # 폭발 진행 시간 추적용
-        self.damage_dealt = False     # 데미지 중복 적용 방지
+        self.state = 'moving'
+        self.wait_timer = 0.2
+        self.explode_duration = 0.2
+        self.explode_timer = 0
+        self.damage_dealt = False
 
     def set_enemies(self, enemies): 
         self.enemies = enemies
@@ -55,43 +50,39 @@ class BombProjectile(BasicProjectile):
         tx, ty = self.target.pixel_pos
         
         if self.state == 'moving':
-            # 1. 목표 위치로 이동
             dx = tx - self.x
             dy = ty - self.y
             dist = math.hypot(dx, dy)
             
             if dist < max(6, self.speed * dt):
                 self.x, self.y = tx, ty
-                self.state = 'waiting' # 목표 지점 도달 시 대기 상태로 전환
+                self.state = 'waiting'
             else:
                 self.x += dx / dist * self.speed * dt
                 self.y += dy / dist * self.speed * dt
                 
         elif self.state == 'waiting':
-            # 2. 0.2초 동안 제자리에 머무름
             self.wait_timer -= dt
             if self.wait_timer <= 0:
                 self.state = 'exploding'
                 
         elif self.state == 'exploding':
-            # 3. 💥 [Hit 시점] 폭발 및 데미지 판정 (1회만 적용)
+
             if not self.damage_dealt:
-                total_damage = 0 # 이번 폭발로 준 총 데미지 계산용
+                total_damage = 0 
                 for e in self.enemies:
                     if e.alive and math.hypot(e.pixel_pos[0] - self.x, e.pixel_pos[1] - self.y) <= self.radius: 
                         e.take_damage(self.damage)
-                        total_damage += self.damage # 광역 데미지 누적
-                        
-                # 펑 터지면서 맞춘 모든 적의 데미지 합산을 타워 게이지로!
+                        total_damage += self.damage
                 if self.owner_tower and total_damage > 0:
                     self.owner_tower.add_skill_gauge(total_damage)
                     
                 self.damage_dealt = True
             
-            # 폭발 이펙트 지속시간 체크
+
             self.explode_timer += dt
             if self.explode_timer >= self.explode_duration:
-                self.alive = False # 이펙트 끝나면 투사체 삭제
+                self.alive = False
 
     def draw(self, surface):
         if self.state in ['moving', 'waiting']:
@@ -137,23 +128,22 @@ class LightningProjectile:
         current=self.target
         hit=[]
         self.points=[self.start]
-        total_damage = 0 # ⚡ 전기가 튕기면서 준 총 데미지 계산용
+        total_damage = 0
         
         for _ in range(self.chain_count+1):
             if not current or not current.alive: 
                 break
-            # 🎯 [Hit 시점] 체인 라이트닝 명중
+
             current.take_damage(self.damage)
             current.apply_stun(0.18)
             
-            total_damage += self.damage # 튕길 때마다 데미지 누적
+            total_damage += self.damage 
             hit.append(current)
             self.points.append(tuple(current.pixel_pos))
             
             candidates=[e for e in self.enemies if e.alive and e not in hit and math.hypot(e.pixel_pos[0]-current.pixel_pos[0],e.pixel_pos[1]-current.pixel_pos[1])<=55]
             current=min(candidates,key=lambda e: math.hypot(e.pixel_pos[0]-current.pixel_pos[0],e.pixel_pos[1]-current.pixel_pos[1]), default=None)
             
-        # 전기가 다 튕긴 후, 주인 타워의 게이지 상승
         if self.owner_tower and total_damage > 0:
             self.owner_tower.add_skill_gauge(total_damage)
 
@@ -163,7 +153,6 @@ class LightningProjectile:
 
 class ThornProjectile(BasicProjectile):
     def __init__(self, start_grid, target, damage, slow_factor, owner_tower):
-        # 부모 생성자에 owner_tower를 올바르게 전달하도록 수정
         super().__init__(start_grid, target, damage, speed=280, owner_tower=owner_tower)
         self.slow_factor = slow_factor
         self.color = (160, 110, 70)
@@ -179,11 +168,8 @@ class ThornProjectile(BasicProjectile):
         dist = math.hypot(dx, dy)
         
         if dist < max(6, self.speed * dt): 
-            # 🎯 [Hit 시점] 가시 투사체 명중
             self.target.take_damage(self.damage)
             self.target.apply_slow(self.slow_factor, 0.6) 
-            
-            # 주인 타워가 있다면 게이지 상승
             if self.owner_tower:
                 self.owner_tower.add_skill_gauge(self.damage)
                 
